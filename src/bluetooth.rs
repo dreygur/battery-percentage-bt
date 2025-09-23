@@ -37,8 +37,26 @@ impl BluetoothDevice {
         }))
     }
 
+    // fn classify_device(uuids: &[uuid::Uuid]) -> &'static str {
+    //     for uuid in uuids {
+    //         let short = uuid.as_u128() >> 96; // extract 16-bit portion if in Bluetooth base UUID
+
+    //         match short {
+    //             0x1812 => return "Keyboard/Mouse (HID)",  // Human Interface Device
+    //             0x1108 | 0x111e => return "Headset/Handsfree",
+    //             0x1800 => return "Generic Access (Phone/Peripheral)",
+    //             0x180F => return "Battery-powered Device",
+    //             _ => {}
+    //         }
+    //     }
+
+    //     "Unknown"
+    // }
+
     async fn detect_device_type(name: &str, _device: &Device) -> BluetoothDeviceType {
         let name_lower = name.to_lowercase();
+        // let class = device.all_properties().await;
+        // println!("Device: {:?}", class);
 
         if name_lower.contains("headphone") || name_lower.contains("earbuds") ||
            name_lower.contains("airpods") || name_lower.contains("buds") {

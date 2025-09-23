@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# create-release.sh - Create a release tarball with compiled binaries and scripts
-
 set -e  # Exit on any error
 
 # Configuration
