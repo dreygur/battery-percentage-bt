@@ -1,0 +1,14 @@
+[package]
+name = "bettery_percentage"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "bluetooth_only"
+path = "src/bin/bluetooth_only.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+bluer = { version = "0.17.4", features = ["full"] }
+futures = "0.3.31"
+hidapi = "2.6"
