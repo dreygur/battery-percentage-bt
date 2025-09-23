@@ -5,13 +5,15 @@
 
 INDICATOR_FILE="/tmp/bluetooth-battery-status"
 DESKTOP_FILE="$HOME/.local/share/applications/bluetooth-battery-monitor.desktop"
-BINARY_PATH="/home/rakib/Code/battery_percentage/target/debug/bluetooth_only"
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BINARY_PATH="$SCRIPT_DIR/target/debug/bluetooth_only"
 
 echo "Setting up GNOME integration for Bluetooth Battery Monitor..."
 
 # Build the bluetooth_only binary first
 echo "Building bluetooth_only binary..."
-cd "/home/rakib/Code/battery_percentage"
+cd "$SCRIPT_DIR"
 cargo build --bin bluetooth_only
 
 if [ ! -f "$BINARY_PATH" ]; then

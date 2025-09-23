@@ -4,9 +4,10 @@
 
 set -e
 
-PROJECT_DIR="/home/rakib/Code/battery_percentage"
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BINARY_NAME="bluetooth_only"
-BINARY_PATH="$PROJECT_DIR/target/debug/$BINARY_NAME"
+BINARY_PATH="$SCRIPT_DIR/target/debug/$BINARY_NAME"
 SERVICE_NAME="bluetooth-battery-monitor"
 
 echo "🔋 Installing Bluetooth Battery Monitor for Ubuntu 24.04 Status Bar"
@@ -14,7 +15,7 @@ echo "=================================================================="
 
 # Step 1: Build the project
 echo "📦 Building the project..."
-cd "$PROJECT_DIR"
+cd "$SCRIPT_DIR"
 cargo build --bin "$BINARY_NAME"
 
 if [ ! -f "$BINARY_PATH" ]; then
@@ -25,7 +26,7 @@ echo "✅ Binary built successfully"
 
 # Step 2: Run the GNOME integration script
 echo "🔧 Setting up GNOME integration..."
-bash "$PROJECT_DIR/gnome-integration.sh"
+bash "$SCRIPT_DIR/gnome-integration.sh"
 
 # Step 3: Enable and start the service
 echo "🚀 Enabling and starting the background service..."

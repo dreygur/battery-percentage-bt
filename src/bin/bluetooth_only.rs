@@ -1,4 +1,4 @@
-use battery_percentage::bluetooth::{BluetoothDevice, BluetoothManager};
+use bettery_percentage::bluetooth::{BluetoothDevice, BluetoothManager};
 use bluer::{AdapterEvent, Session};
 use futures::StreamExt;
 use std::time::Duration;
