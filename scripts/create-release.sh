@@ -56,9 +56,9 @@ chmod +x "$RELEASE_DIR/$PACKAGE_NAME/bluetooth_only"
 
 # Copy shell scripts
 echo -e "${YELLOW}Copying shell scripts...${NC}"
-cp gnome-integration.sh "$RELEASE_DIR/$PACKAGE_NAME/"
-cp install-status-bar.sh "$RELEASE_DIR/$PACKAGE_NAME/"
-cp status-bar-reader.sh "$RELEASE_DIR/$PACKAGE_NAME/"
+cp scripts/gnome-integration.sh "$RELEASE_DIR/$PACKAGE_NAME/"
+cp scripts/install-status-bar.sh "$RELEASE_DIR/$PACKAGE_NAME/"
+cp scripts/status-bar-reader.sh "$RELEASE_DIR/$PACKAGE_NAME/"
 
 # Make shell scripts executable
 chmod +x "$RELEASE_DIR/$PACKAGE_NAME/gnome-integration.sh"
@@ -71,17 +71,21 @@ if [ -f "README.md" ]; then
     cp README.md "$RELEASE_DIR/$PACKAGE_NAME/"
 fi
 
-# Create a simple install script
+# Create install script
 echo -e "${YELLOW}Creating install script...${NC}"
-cat > "$RELEASE_DIR/$PACKAGE_NAME/install.sh" << 'EOF'
+
+# Create the basic install script first
+cat > "$RELEASE_DIR/$PACKAGE_NAME/install.sh" << 'INSTALL_EOF'
 #!/bin/bash
 
-# Simple install script for bettery_percentage
+# Install script for bettery_percentage with GNOME integration
 
 set -e
 
 INSTALL_DIR="$HOME/.local/bin"
 SCRIPT_DIR="$HOME/.local/share/bettery_percentage"
+INDICATOR_FILE="/tmp/bluetooth-battery-status"
+DESKTOP_FILE="$HOME/.local/share/applications/bluetooth-battery-monitor.desktop"
 
 echo "Installing bettery_percentage..."
 
@@ -102,11 +106,83 @@ echo "Installation completed!"
 echo "Binaries installed to: $INSTALL_DIR"
 echo "Scripts installed to: $SCRIPT_DIR"
 echo ""
-echo "Make sure $INSTALL_DIR is in your PATH to use the binaries."
-echo "You can add it by running:"
-echo "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
-echo "  source ~/.bashrc"
-EOF
+
+# GNOME Integration Setup
+echo "Setting up GNOME integration..."
+
+# Create desktop entry
+mkdir -p "$HOME/.local/share/applications"
+INSTALL_EOF
+
+# Add desktop file creation to install script
+cat >> "$RELEASE_DIR/$PACKAGE_NAME/install.sh" << 'DESKTOP_SCRIPT_EOF'
+cat > "$DESKTOP_FILE" << 'DESKTOP_FILE_EOF'
+[Desktop Entry]
+Type=Application
+Name=Bluetooth Battery Monitor
+Exec=$INSTALL_DIR/bluetooth_only
+Icon=bluetooth
+StartupNotify=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+DESKTOP_FILE_EOF
+
+# Create systemd user service
+SERVICE_FILE="$HOME/.config/systemd/user/bluetooth-battery-monitor.service"
+mkdir -p "$HOME/.config/systemd/user"
+
+DESKTOP_SCRIPT_EOF
+
+# Add systemd service creation to install script
+cat >> "$RELEASE_DIR/$PACKAGE_NAME/install.sh" << 'SERVICE_SCRIPT_EOF'
+cat > "$SERVICE_FILE" << 'SERVICE_FILE_EOF'
+[Unit]
+Description=Bluetooth Battery Monitor
+After=graphical-session.target bluetooth.target
+
+[Service]
+Type=simple
+ExecStart=$INSTALL_DIR/bluetooth_only
+Restart=always
+RestartSec=5
+Environment=DISPLAY=:0
+Environment=XDG_RUNTIME_DIR=%i
+
+[Install]
+WantedBy=default.target
+SERVICE_FILE_EOF
+
+SERVICE_SCRIPT_EOF
+
+# Add final instructions to install script
+cat >> "$RELEASE_DIR/$PACKAGE_NAME/install.sh" << 'FINAL_EOF'
+
+echo ""
+echo "GNOME integration files created!"
+echo ""
+echo "Installation Summary:"
+echo "- Binaries installed to: $INSTALL_DIR"
+echo "- Scripts installed to: $SCRIPT_DIR"
+echo "- Desktop entry created: $DESKTOP_FILE"
+echo "- Systemd service created: $SERVICE_FILE"
+echo ""
+echo "To complete GNOME integration:"
+echo "1. Install a GNOME Shell extension to display custom text in the status bar:"
+echo "   - 'Executor' extension: https://extensions.gnome.org/extension/2932/executor/"
+echo "   - Or 'Generic Monitor' extension: https://extensions.gnome.org/extension/3968/generic-monitor/"
+echo ""
+echo "2. Enable and start the background service:"
+echo "   systemctl --user daemon-reload"
+echo "   systemctl --user enable bluetooth-battery-monitor.service"
+echo "   systemctl --user start bluetooth-battery-monitor.service"
+echo ""
+echo "3. Configure the GNOME extension to read from: $INDICATOR_FILE"
+echo "   Command: cat $INDICATOR_FILE"
+echo "   Refresh interval: 30 seconds"
+echo ""
+echo "4. Check service status with:"
+echo "   systemctl --user status bluetooth-battery-monitor.service"
+FINAL_EOF
 
 chmod +x "$RELEASE_DIR/$PACKAGE_NAME/install.sh"
 

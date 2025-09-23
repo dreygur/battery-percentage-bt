@@ -6,8 +6,17 @@ set -e
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Find project root (look for Cargo.toml)
+if [ -f "$SCRIPT_DIR/Cargo.toml" ]; then
+    PROJECT_ROOT="$SCRIPT_DIR"
+elif [ -f "$SCRIPT_DIR/../Cargo.toml" ]; then
+    PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+else
+    echo "Error: Could not find Cargo.toml. Make sure you're in the project directory or scripts directory."
+    exit 1
+fi
 BINARY_NAME="bluetooth_only"
-BINARY_PATH="$SCRIPT_DIR/target/debug/$BINARY_NAME"
+BINARY_PATH="$PROJECT_ROOT/target/debug/$BINARY_NAME"
 SERVICE_NAME="bluetooth-battery-monitor"
 
 echo "🔋 Installing Bluetooth Battery Monitor for Ubuntu 24.04 Status Bar"
@@ -15,7 +24,7 @@ echo "=================================================================="
 
 # Step 1: Build the project
 echo "📦 Building the project..."
-cd "$SCRIPT_DIR"
+cd "$PROJECT_ROOT"
 cargo build --bin "$BINARY_NAME"
 
 if [ ! -f "$BINARY_PATH" ]; then
@@ -26,7 +35,14 @@ echo "✅ Binary built successfully"
 
 # Step 2: Run the GNOME integration script
 echo "🔧 Setting up GNOME integration..."
-bash "$SCRIPT_DIR/gnome-integration.sh"
+if [ -f "$SCRIPT_DIR/gnome-integration.sh" ]; then
+    bash "$SCRIPT_DIR/gnome-integration.sh"
+elif [ -f "$PROJECT_ROOT/scripts/gnome-integration.sh" ]; then
+    bash "$PROJECT_ROOT/scripts/gnome-integration.sh"
+else
+    echo "❌ Error: Could not find gnome-integration.sh"
+    exit 1
+fi
 
 # Step 3: Enable and start the service
 echo "🚀 Enabling and starting the background service..."

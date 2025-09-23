@@ -74,6 +74,7 @@ impl KeyboardManager {
                 let device_key = format!("{}:{}", keyboard.path, keyboard.device_id());
                 println!("Found keyboard: {} ({})", keyboard.name, keyboard.device_id());
                 println!("  Type: {:?}", keyboard.keyboard_type);
+                println!("  Serial Number: {:?}", keyboard.serial_number);
                 if let Some(battery) = keyboard.battery_percentage {
                     println!("  Battery: {}%", battery);
                 }

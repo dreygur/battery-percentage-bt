@@ -7,13 +7,22 @@ INDICATOR_FILE="/tmp/bluetooth-battery-status"
 DESKTOP_FILE="$HOME/.local/share/applications/bluetooth-battery-monitor.desktop"
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BINARY_PATH="$SCRIPT_DIR/target/debug/bluetooth_only"
+# Find project root (look for Cargo.toml)
+if [ -f "$SCRIPT_DIR/Cargo.toml" ]; then
+    PROJECT_ROOT="$SCRIPT_DIR"
+elif [ -f "$SCRIPT_DIR/../Cargo.toml" ]; then
+    PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+else
+    echo "Error: Could not find Cargo.toml. Make sure you're in the project directory or scripts directory."
+    exit 1
+fi
+BINARY_PATH="$PROJECT_ROOT/target/debug/bluetooth_only"
 
 echo "Setting up GNOME integration for Bluetooth Battery Monitor..."
 
 # Build the bluetooth_only binary first
 echo "Building bluetooth_only binary..."
-cd "$SCRIPT_DIR"
+cd "$PROJECT_ROOT"
 cargo build --bin bluetooth_only
 
 if [ ! -f "$BINARY_PATH" ]; then
