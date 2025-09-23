@@ -39,7 +39,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "bettery_percentage"
+name = "battery_percentage"
 version = "0.1.0"
 dependencies = [
  "bluer",

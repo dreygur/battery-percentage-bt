@@ -5,7 +5,7 @@
 set -e  # Exit on any error
 
 # Configuration
-PACKAGE_NAME="bettery_percentage"
+PACKAGE_NAME="battery_percentage"
 VERSION=$(grep '^version = ' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
 RELEASE_DIR="release"
 TARBALL_NAME="${PACKAGE_NAME}-${VERSION}-linux-x86_64.tar.gz"
@@ -78,23 +78,23 @@ echo -e "${YELLOW}Creating install script...${NC}"
 cat > "$RELEASE_DIR/$PACKAGE_NAME/install.sh" << 'INSTALL_EOF'
 #!/bin/bash
 
-# Install script for bettery_percentage with GNOME integration
+# Install script for battery_percentage with GNOME integration
 
 set -e
 
 INSTALL_DIR="$HOME/.local/bin"
-SCRIPT_DIR="$HOME/.local/share/bettery_percentage"
+SCRIPT_DIR="$HOME/.local/share/battery_percentage"
 INDICATOR_FILE="/tmp/bluetooth-battery-status"
 DESKTOP_FILE="$HOME/.local/share/applications/bluetooth-battery-monitor.desktop"
 
-echo "Installing bettery_percentage..."
+echo "Installing battery_percentage..."
 
 # Create directories if they don't exist
 mkdir -p "$INSTALL_DIR"
 mkdir -p "$SCRIPT_DIR"
 
 # Copy binaries
-cp bettery_percentage "$INSTALL_DIR/"
+cp battery_percentage "$INSTALL_DIR/"
 cp bluetooth_only "$INSTALL_DIR/"
 
 # Copy scripts
