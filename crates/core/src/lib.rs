@@ -3,8 +3,8 @@ use std::time::{Duration, SystemTime};
 use thiserror::Error;
 use uuid::Uuid;
 
-pub mod device_monitor;
 pub mod bluetooth;
+pub mod device_monitor;
 pub mod usb;
 
 pub use device_monitor::*;
@@ -77,11 +77,7 @@ pub enum CoreError {
 }
 
 impl Device {
-    pub fn new(
-        name: String,
-        device_type: DeviceType,
-        connection_type: ConnectionType,
-    ) -> Self {
+    pub fn new(name: String, device_type: DeviceType, connection_type: ConnectionType) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             name,

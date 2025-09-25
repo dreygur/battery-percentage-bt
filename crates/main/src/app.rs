@@ -1,6 +1,8 @@
 use battery_monitor_config::Config;
 use battery_monitor_core::{DeviceEvent, DeviceMonitor, LinuxDeviceMonitor};
-use battery_monitor_notifications::{DesktopNotificationManager, NotificationManager, NotificationType};
+use battery_monitor_notifications::{
+    DesktopNotificationManager, NotificationManager, NotificationType,
+};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -66,7 +68,9 @@ impl BatteryMonitorApp {
         let devices = Arc::clone(&self.devices);
 
         // Create a separate notification manager for the callback
-        let callback_notification_manager = Arc::new(Mutex::new(Box::new(DesktopNotificationManager::new()) as Box<dyn NotificationManager + Send + Sync>));
+        let callback_notification_manager =
+            Arc::new(Mutex::new(Box::new(DesktopNotificationManager::new())
+                as Box<dyn NotificationManager + Send + Sync>));
 
         // Initialize the callback notification manager
         {
@@ -106,7 +110,8 @@ impl BatteryMonitorApp {
                 let config_guard = config.lock().unwrap();
                 if config_guard.notifications.show_connect_disconnect {
                     let mut nm = notification_manager.lock().unwrap();
-                    if let Err(e) = nm.send_notification(NotificationType::DeviceConnected(device)) {
+                    if let Err(e) = nm.send_notification(NotificationType::DeviceConnected(device))
+                    {
                         debug!("Failed to send connection notification: {}", e);
                     }
                 }
@@ -131,7 +136,9 @@ impl BatteryMonitorApp {
                     let config_guard = config.lock().unwrap();
                     if config_guard.notifications.show_connect_disconnect {
                         let mut nm = notification_manager.lock().unwrap();
-                        if let Err(e) = nm.send_notification(NotificationType::DeviceDisconnected(device)) {
+                        if let Err(e) =
+                            nm.send_notification(NotificationType::DeviceDisconnected(device))
+                        {
                             debug!("Failed to send disconnection notification: {}", e);
                         }
                     }
@@ -175,7 +182,10 @@ impl BatteryMonitorApp {
             config.polling_interval()
         };
 
-        info!("Starting device monitoring with interval {:?}", polling_interval);
+        info!(
+            "Starting device monitoring with interval {:?}",
+            polling_interval
+        );
         self.device_monitor.start_monitoring(polling_interval)?;
 
         let (shutdown_sender, mut shutdown_receiver) = tokio::sync::oneshot::channel();
@@ -235,13 +245,15 @@ impl BatteryMonitorApp {
         if connected_count > 0 {
             debug!("Currently tracking {} devices", connected_count);
             for device in devices.values() {
-                debug!("  - {}: {:?} ({})",
-                       device.name,
-                       device.battery_level,
-                       match device.connection_status {
-                           battery_monitor_core::ConnectionStatus::Connected => "connected",
-                           battery_monitor_core::ConnectionStatus::Disconnected => "disconnected",
-                       });
+                debug!(
+                    "  - {}: {:?} ({})",
+                    device.name,
+                    device.battery_level,
+                    match device.connection_status {
+                        battery_monitor_core::ConnectionStatus::Connected => "connected",
+                        battery_monitor_core::ConnectionStatus::Disconnected => "disconnected",
+                    }
+                );
             }
         }
     }
@@ -308,12 +320,15 @@ impl BatteryMonitorApp {
         }
 
         // Update notification manager settings
-        self.notification_manager.set_enabled(new_config.notifications.enabled);
-        self.notification_manager.set_suppression_duration(new_config.suppression_duration());
+        self.notification_manager
+            .set_enabled(new_config.notifications.enabled);
+        self.notification_manager
+            .set_suppression_duration(new_config.suppression_duration());
 
         // Restart monitoring with new interval if changed
         self.device_monitor.stop_monitoring();
-        self.device_monitor.start_monitoring(new_config.polling_interval())?;
+        self.device_monitor
+            .start_monitoring(new_config.polling_interval())?;
 
         info!("Configuration updated");
         Ok(())

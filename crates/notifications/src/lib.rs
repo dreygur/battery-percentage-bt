@@ -1,10 +1,10 @@
 use battery_monitor_core::{Device, DeviceType};
+use notify_rust::{Notification, NotificationHandle};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
 use thiserror::Error;
 use tracing::{debug, error, info, warn};
-use notify_rust::{Notification, NotificationHandle};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NotificationType {
@@ -21,7 +21,10 @@ pub struct NotificationRecord {
 }
 
 pub trait NotificationManager {
-    fn send_notification(&mut self, notification: NotificationType) -> Result<(), NotificationError>;
+    fn send_notification(
+        &mut self,
+        notification: NotificationType,
+    ) -> Result<(), NotificationError>;
     fn is_enabled(&self) -> bool;
     fn set_enabled(&mut self, enabled: bool);
     fn get_notification_log(&self) -> Vec<NotificationRecord>;
@@ -90,15 +93,20 @@ impl DesktopNotificationManager {
 
         match notification_type {
             NotificationType::LowBattery { .. } => {
-                self.last_low_battery_alert.insert(device_id.to_string(), now);
+                self.last_low_battery_alert
+                    .insert(device_id.to_string(), now);
             }
             NotificationType::DeviceConnected(_) | NotificationType::DeviceDisconnected(_) => {
-                self.last_connection_alert.insert(device_id.to_string(), now);
+                self.last_connection_alert
+                    .insert(device_id.to_string(), now);
             }
         }
     }
 
-    fn send_desktop_notification(&self, notification_type: &NotificationType) -> Result<NotificationHandle, NotificationError> {
+    fn send_desktop_notification(
+        &self,
+        notification_type: &NotificationType,
+    ) -> Result<NotificationHandle, NotificationError> {
         let (summary, body, icon) = match notification_type {
             NotificationType::LowBattery { device, threshold } => {
                 let battery_text = if let Some(level) = device.battery_level {
@@ -130,10 +138,11 @@ impl DesktopNotificationManager {
         };
 
         let mut notification = Notification::new();
-        notification.summary(&summary)
-                   .body(&body)
-                   .icon(&icon)
-                   .timeout(notify_rust::Timeout::Milliseconds(5000));
+        notification
+            .summary(&summary)
+            .body(&body)
+            .icon(&icon)
+            .timeout(notify_rust::Timeout::Milliseconds(5000));
 
         // Set urgency based on notification type
         match notification_type {
@@ -145,8 +154,9 @@ impl DesktopNotificationManager {
             }
         }
 
-        notification.show()
-            .map_err(|e| NotificationError::SystemError(format!("Failed to show notification: {}", e)))
+        notification.show().map_err(|e| {
+            NotificationError::SystemError(format!("Failed to show notification: {}", e))
+        })
     }
 
     fn get_device_icon(&self, device_type: &DeviceType) -> &'static str {
@@ -175,7 +185,10 @@ impl DesktopNotificationManager {
             self.notification_log.drain(0..excess);
         }
 
-        debug!("Added notification to log, total entries: {}", self.notification_log.len());
+        debug!(
+            "Added notification to log, total entries: {}",
+            self.notification_log.len()
+        );
     }
 
     fn get_device_id_from_notification(notification_type: &NotificationType) -> &str {
@@ -188,7 +201,10 @@ impl DesktopNotificationManager {
 }
 
 impl NotificationManager for DesktopNotificationManager {
-    fn send_notification(&mut self, notification: NotificationType) -> Result<(), NotificationError> {
+    fn send_notification(
+        &mut self,
+        notification: NotificationType,
+    ) -> Result<(), NotificationError> {
         if !self.enabled {
             self.add_to_log(notification, false);
             return Err(NotificationError::Disabled);
@@ -222,7 +238,10 @@ impl NotificationManager for DesktopNotificationManager {
 
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
-        info!("Notifications {}", if enabled { "enabled" } else { "disabled" });
+        info!(
+            "Notifications {}",
+            if enabled { "enabled" } else { "disabled" }
+        );
     }
 
     fn get_notification_log(&self) -> Vec<NotificationRecord> {
@@ -251,7 +270,7 @@ impl Default for DesktopNotificationManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use battery_monitor_core::{ConnectionType, ConnectionStatus};
+    use battery_monitor_core::{ConnectionStatus, ConnectionType};
 
     fn create_test_device() -> Device {
         Device {
@@ -318,9 +337,15 @@ mod tests {
         let manager = DesktopNotificationManager::new();
 
         assert_eq!(manager.get_device_icon(&DeviceType::Mouse), "input-mouse");
-        assert_eq!(manager.get_device_icon(&DeviceType::Keyboard), "input-keyboard");
+        assert_eq!(
+            manager.get_device_icon(&DeviceType::Keyboard),
+            "input-keyboard"
+        );
         assert_eq!(manager.get_device_icon(&DeviceType::Mobile), "phone");
-        assert_eq!(manager.get_device_icon(&DeviceType::Headphones), "audio-headphones");
+        assert_eq!(
+            manager.get_device_icon(&DeviceType::Headphones),
+            "audio-headphones"
+        );
         assert_eq!(manager.get_device_icon(&DeviceType::Unknown), "battery");
     }
 }

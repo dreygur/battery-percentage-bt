@@ -1,4 +1,4 @@
-use crate::{Device, ConnectionType, CoreError, detect_device_type};
+use crate::{detect_device_type, ConnectionType, CoreError, Device};
 use std::collections::HashMap;
 use tracing::{debug, info, warn};
 use zbus::{Connection, Result as ZBusResult};
@@ -35,7 +35,9 @@ impl BluetoothScanner {
         match self.get_bluetooth_devices().await {
             Ok(bt_devices) => {
                 for (device_id, device_info) in bt_devices {
-                    let device = self.create_device_from_bt_info(device_id, device_info).await?;
+                    let device = self
+                        .create_device_from_bt_info(device_id, device_info)
+                        .await?;
                     devices.push(device);
                 }
             }
@@ -50,7 +52,9 @@ impl BluetoothScanner {
         Ok(devices)
     }
 
-    async fn get_bluetooth_devices(&mut self) -> Result<HashMap<String, BluetoothDeviceInfo>, CoreError> {
+    async fn get_bluetooth_devices(
+        &mut self,
+    ) -> Result<HashMap<String, BluetoothDeviceInfo>, CoreError> {
         let mut devices = HashMap::new();
 
         let connection = match self.get_connection().await {
@@ -78,7 +82,9 @@ impl BluetoothScanner {
         Ok(devices)
     }
 
-    async fn scan_bluez_devices_static(connection: &Connection) -> ZBusResult<HashMap<String, BluetoothDeviceInfo>> {
+    async fn scan_bluez_devices_static(
+        connection: &Connection,
+    ) -> ZBusResult<HashMap<String, BluetoothDeviceInfo>> {
         let mut devices = HashMap::new();
 
         // Get the BlueZ object manager to enumerate all objects
@@ -124,16 +130,25 @@ impl BluetoothScanner {
 
                 // Extract UUIDs for service identification
                 if let Some(uuids_variant) = device_props.get("UUIDs") {
-                    if let Some(uuids_array) = uuids_variant.downcast_ref::<zbus::zvariant::Array>() {
-                        device_info.uuids = uuids_array.iter().filter_map(|v| v.downcast_ref::<str>().map(|s| s.to_string())).collect();
+                    if let Some(uuids_array) = uuids_variant.downcast_ref::<zbus::zvariant::Array>()
+                    {
+                        device_info.uuids = uuids_array
+                            .iter()
+                            .filter_map(|v| v.downcast_ref::<str>().map(|s| s.to_string()))
+                            .collect();
                     }
                 }
 
                 // Try to get battery level if device is connected
                 if device_info.connected {
-                    if let Ok(battery_level) = Self::get_battery_level_static(connection, &object_path).await {
+                    if let Ok(battery_level) =
+                        Self::get_battery_level_static(connection, &object_path).await
+                    {
                         device_info.battery_level = Some(battery_level);
-                        debug!("Device {} has battery level: {}%", device_info.name, battery_level);
+                        debug!(
+                            "Device {} has battery level: {}%",
+                            device_info.name, battery_level
+                        );
                     }
                 }
 
@@ -144,7 +159,10 @@ impl BluetoothScanner {
         Ok(devices)
     }
 
-    async fn get_battery_level_static(connection: &Connection, device_path: &zbus::zvariant::ObjectPath<'_>) -> ZBusResult<u8> {
+    async fn get_battery_level_static(
+        connection: &Connection,
+        device_path: &zbus::zvariant::ObjectPath<'_>,
+    ) -> ZBusResult<u8> {
         // Try to get battery information via Battery1 interface
         let properties_proxy = zbus::fdo::PropertiesProxy::builder(connection)
             .destination("org.bluez")?
@@ -153,7 +171,10 @@ impl BluetoothScanner {
             .await?;
 
         // Get battery percentage from Battery1 interface
-        match properties_proxy.get("org.bluez.Battery1".try_into().unwrap(), "Percentage").await {
+        match properties_proxy
+            .get("org.bluez.Battery1".try_into().unwrap(), "Percentage")
+            .await
+        {
             Ok(percentage_variant) => {
                 if let Some(percentage) = percentage_variant.downcast_ref::<u8>() {
                     return Ok(*percentage);
@@ -167,15 +188,15 @@ impl BluetoothScanner {
         Err(zbus::Error::InterfaceNotFound)
     }
 
-    async fn create_device_from_bt_info(&self, device_id: String, info: BluetoothDeviceInfo) -> Result<Device, CoreError> {
+    async fn create_device_from_bt_info(
+        &self,
+        device_id: String,
+        info: BluetoothDeviceInfo,
+    ) -> Result<Device, CoreError> {
         let device_type = detect_device_type(&info.name, info.device_class);
 
-        let mut device = Device::with_id(
-            device_id,
-            info.name,
-            device_type,
-            ConnectionType::Bluetooth,
-        );
+        let mut device =
+            Device::with_id(device_id, info.name, device_type, ConnectionType::Bluetooth);
 
         device.set_connected(info.connected);
         device.update_battery(info.battery_level);
@@ -200,12 +221,24 @@ mod tests {
 
     #[test]
     fn test_device_type_detection() {
-        assert_eq!(detect_device_type("Logitech Mouse", Some(0x002580)), DeviceType::Mouse);
-        assert_eq!(detect_device_type("Apple Magic Keyboard", Some(0x002540)), DeviceType::Keyboard);
-        assert_eq!(detect_device_type("Sony WH-1000XM4", Some(0x240404)), DeviceType::Headphones);
+        assert_eq!(
+            detect_device_type("Logitech Mouse", Some(0x002580)),
+            DeviceType::Mouse
+        );
+        assert_eq!(
+            detect_device_type("Apple Magic Keyboard", Some(0x002540)),
+            DeviceType::Keyboard
+        );
+        assert_eq!(
+            detect_device_type("Sony WH-1000XM4", Some(0x240404)),
+            DeviceType::Headphones
+        );
         assert_eq!(detect_device_type("AirPods Pro", None), DeviceType::Buds);
         assert_eq!(detect_device_type("iPhone 13", None), DeviceType::Mobile);
-        assert_eq!(detect_device_type("Unknown Device", None), DeviceType::Unknown);
+        assert_eq!(
+            detect_device_type("Unknown Device", None),
+            DeviceType::Unknown
+        );
     }
 
     #[tokio::test]

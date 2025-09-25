@@ -24,26 +24,60 @@ A comprehensive battery monitoring application for Linux that tracks battery lev
 ### Prerequisites
 
 - Rust 1.70+ (latest stable recommended)
-- GTK4 development libraries
+- GTK4 development libraries and dependencies
 - D-Bus system access (standard on most Linux distributions)
+- pkg-config for library detection
 
 #### Ubuntu/Debian
 
 ```bash
-sudo apt install build-essential libgtk-4-dev libdbus-1-dev pkg-config
+# Install build essentials and GTK4 development packages
+sudo apt update
+sudo apt install -y build-essential pkg-config
+
+# Install GTK4 and related development libraries
+sudo apt install -y libgtk-4-dev libglib2.0-dev libcairo2-dev \
+                    libpango1.0-dev libgdk-pixbuf2.0-dev \
+                    libgraphene-1.0-dev libdbus-1-dev
+
+# Optional: Additional dependencies that may be required
+sudo apt install -y libgio-2.0-dev gobject-introspection \
+                    libgirepository1.0-dev
 ```
 
 #### Fedora/RHEL
 
 ```bash
-sudo dnf install gcc gtk4-devel dbus-devel pkgconfig
+# Install build essentials
+sudo dnf groupinstall "Development Tools"
+sudo dnf install pkg-config
+
+# Install GTK4 and related development libraries
+sudo dnf install gtk4-devel glib2-devel cairo-devel \
+                  pango-devel gdk-pixbuf2-devel \
+                  graphene-devel dbus-devel
 ```
 
 #### Arch Linux
 
 ```bash
-sudo pacman -S base-devel gtk4 dbus pkgconf
+# Install base development packages
+sudo pacman -S base-devel pkgconf
+
+# Install GTK4 and related libraries
+sudo pacman -S gtk4 glib2 cairo pango gdk-pixbuf2 \
+               graphene dbus
 ```
+
+### Verifying Prerequisites
+
+After installing the prerequisites, verify that GTK4 is properly detected:
+
+```bash
+pkg-config --modversion gtk4
+```
+
+This should output a version number (4.0.0 or higher). If it fails, ensure the development packages are installed correctly.
 
 ### Building from Source
 
@@ -54,16 +88,44 @@ git clone <repository-url>
 cd battery_percentage
 ```
 
-2. Build the application:
+2. Verify that all prerequisites are installed:
 
 ```bash
-cargo build --release
+# Test that GTK4 development libraries are available
+pkg-config --exists gtk4 && echo "GTK4 detected" || echo "GTK4 not found - install prerequisites first"
 ```
 
-3. Install (optional):
+3. Build the application:
 
 ```bash
-cargo install --path main
+# Build in release mode for optimal performance
+cargo build --release
+
+# Or build in debug mode for development
+cargo build
+```
+
+4. Test the build (optional):
+
+```bash
+# Run tests to ensure everything works
+cargo test
+
+# Check for any linting issues
+cargo clippy
+
+# Verify formatting
+cargo fmt --check
+```
+
+5. Install (optional):
+
+```bash
+# Install the main binary
+cargo install --path crates/main
+
+# Or run directly from the build directory
+./target/release/battery-monitor
 ```
 
 The binary will be available as `battery-monitor`.
@@ -282,7 +344,49 @@ systemctl --user start battery-monitor.service
    - Increase polling interval in configuration
    - Check for D-Bus connection issues in logs
 
-### Logging
+### Build Issues
+
+**GTK4 development libraries not found:**
+
+```bash
+error: The system library `gtk4` required by crate `gdk4-sys` was not found.
+```
+
+**Solution:** Install the GTK4 development packages as described in the Prerequisites section.
+
+**pkg-config not found:**
+
+```bash
+error: failed to run custom build command for `glib-sys`
+```
+
+**Solution:** Install pkg-config and ensure it's in your PATH:
+
+```bash
+# Ubuntu/Debian
+sudo apt install pkg-config
+
+# Fedora/RHEL
+sudo dnf install pkg-config
+
+# Arch Linux
+sudo pacman -S pkgconf
+```
+
+**Permissions issues with D-Bus:**
+
+```bash
+Permission denied errors when accessing bluetooth devices
+```
+
+**Solution:** Add your user to the bluetooth group:
+
+```bash
+sudo usermod -a -G bluetooth $USER
+# Log out and back in for changes to take effect
+```
+
+### Runtime Logging
 
 Enable verbose logging:
 

@@ -1,4 +1,4 @@
-use crate::{Device, ConnectionType, CoreError, detect_device_type};
+use crate::{detect_device_type, ConnectionType, CoreError, Device};
 use std::fs;
 use std::path::PathBuf;
 use tracing::{debug, warn};
@@ -44,15 +44,17 @@ impl UsbScanner {
             return Ok(devices);
         }
 
-        let entries = fs::read_dir(&power_supply_path)
-            .map_err(|e| CoreError::SystemApiError(e))?;
+        let entries = fs::read_dir(&power_supply_path).map_err(|e| CoreError::SystemApiError(e))?;
 
         for entry in entries {
             let entry = entry.map_err(|e| CoreError::SystemApiError(e))?;
             let device_path = entry.path();
             let device_name = entry.file_name().to_string_lossy().to_string();
 
-            if let Ok(device) = self.create_power_supply_device(&device_path, &device_name).await {
+            if let Ok(device) = self
+                .create_power_supply_device(&device_path, &device_name)
+                .await
+            {
                 if device.battery_level.is_some() {
                     devices.push(device);
                 }
@@ -62,7 +64,11 @@ impl UsbScanner {
         Ok(devices)
     }
 
-    async fn create_power_supply_device(&self, device_path: &PathBuf, device_name: &str) -> Result<Device, CoreError> {
+    async fn create_power_supply_device(
+        &self,
+        device_path: &PathBuf,
+        device_name: &str,
+    ) -> Result<Device, CoreError> {
         let type_path = device_path.join("type");
         let capacity_path = device_path.join("capacity");
         let status_path = device_path.join("status");
@@ -75,8 +81,8 @@ impl UsbScanner {
 
         if device_type_str == "Battery" {
             let capacity = if capacity_path.exists() {
-                let capacity_str = fs::read_to_string(&capacity_path)
-                    .map_err(|e| CoreError::SystemApiError(e))?;
+                let capacity_str =
+                    fs::read_to_string(&capacity_path).map_err(|e| CoreError::SystemApiError(e))?;
                 capacity_str.trim().parse::<u8>().ok()
             } else {
                 None
@@ -123,12 +129,15 @@ impl UsbScanner {
             );
 
             device.update_battery(capacity);
-            device.set_connected(status == "Discharging" || status == "Charging" || status == "Full");
+            device
+                .set_connected(status == "Discharging" || status == "Charging" || status == "Full");
 
             return Ok(device);
         }
 
-        Err(CoreError::DeviceDetectionFailed("Not a battery device".to_string()))
+        Err(CoreError::DeviceDetectionFailed(
+            "Not a battery device".to_string(),
+        ))
     }
 
     async fn scan_usb_hid_devices(&self) -> Result<Vec<Device>, CoreError> {
@@ -139,8 +148,7 @@ impl UsbScanner {
             return Ok(devices);
         }
 
-        let entries = fs::read_dir(&usb_devices_path)
-            .map_err(|e| CoreError::SystemApiError(e))?;
+        let entries = fs::read_dir(&usb_devices_path).map_err(|e| CoreError::SystemApiError(e))?;
 
         for entry in entries {
             let entry = entry.map_err(|e| CoreError::SystemApiError(e))?;
@@ -160,7 +168,9 @@ impl UsbScanner {
         let bdev_class_path = device_path.join("bDeviceClass");
 
         if !product_path.exists() {
-            return Err(CoreError::DeviceDetectionFailed("No product info".to_string()));
+            return Err(CoreError::DeviceDetectionFailed(
+                "No product info".to_string(),
+            ));
         }
 
         let product = fs::read_to_string(&product_path)
@@ -195,12 +205,8 @@ impl UsbScanner {
             let device_type = detect_device_type(&display_name, device_class);
             let device_id = format!("usb_{}", device_path.file_name().unwrap().to_string_lossy());
 
-            let mut device = Device::with_id(
-                device_id,
-                display_name,
-                device_type,
-                ConnectionType::USB,
-            );
+            let mut device =
+                Device::with_id(device_id, display_name, device_type, ConnectionType::USB);
 
             device.set_connected(true);
 
@@ -211,18 +217,21 @@ impl UsbScanner {
             return Ok(device);
         }
 
-        Err(CoreError::DeviceDetectionFailed("Not an HID device".to_string()))
+        Err(CoreError::DeviceDetectionFailed(
+            "Not an HID device".to_string(),
+        ))
     }
 
     async fn get_usb_battery_level(&self, device_path: &PathBuf) -> Result<u8, CoreError> {
         let power_path = device_path.join("power");
 
         if !power_path.exists() {
-            return Err(CoreError::DeviceDetectionFailed("No power info".to_string()));
+            return Err(CoreError::DeviceDetectionFailed(
+                "No power info".to_string(),
+            ));
         }
 
-        let entries = fs::read_dir(&power_path)
-            .map_err(|e| CoreError::SystemApiError(e))?;
+        let entries = fs::read_dir(&power_path).map_err(|e| CoreError::SystemApiError(e))?;
 
         for entry in entries {
             let entry = entry.map_err(|e| CoreError::SystemApiError(e))?;
@@ -240,7 +249,9 @@ impl UsbScanner {
             }
         }
 
-        Err(CoreError::DeviceDetectionFailed("No battery capacity found".to_string()))
+        Err(CoreError::DeviceDetectionFailed(
+            "No battery capacity found".to_string(),
+        ))
     }
 }
 

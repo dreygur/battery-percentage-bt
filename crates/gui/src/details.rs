@@ -1,8 +1,14 @@
-use crate::{GuiError, format_device_display_text, get_device_icon_name, get_connection_status_text, get_connection_type_text};
-use battery_monitor_core::{Device, ConnectionStatus};
+use crate::{
+    format_device_display_text, get_connection_status_text, get_connection_type_text,
+    get_device_icon_name, GuiError,
+};
 use battery_monitor_config::Config;
+use battery_monitor_core::{ConnectionStatus, Device};
 use gtk4::prelude::*;
-use gtk4::{ApplicationWindow, Box, Button, HeaderBar, Label, ListBox, ListBoxRow, Orientation, ScrolledWindow, Separator, Image};
+use gtk4::{
+    ApplicationWindow, Box, Button, HeaderBar, Image, Label, ListBox, ListBoxRow, Orientation,
+    ScrolledWindow, Separator,
+};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -59,7 +65,11 @@ impl DetailsWindow {
 
             // Simulate refresh by clearing and repopulating the list
             // In a real implementation, this would trigger the device monitor
-            Self::refresh_device_list(&device_list_clone, Arc::clone(&devices_clone), Arc::clone(&config_clone));
+            Self::refresh_device_list(
+                &device_list_clone,
+                Arc::clone(&devices_clone),
+                Arc::clone(&config_clone),
+            );
         });
         button_box.append(&refresh_button);
 
@@ -118,16 +128,20 @@ impl DetailsWindow {
         }
 
         let mut device_list: Vec<_> = devices.values().collect();
-        device_list.sort_by(|a, b| {
-            match (a.connection_status, b.connection_status) {
-                (ConnectionStatus::Connected, ConnectionStatus::Disconnected) => std::cmp::Ordering::Less,
-                (ConnectionStatus::Disconnected, ConnectionStatus::Connected) => std::cmp::Ordering::Greater,
-                _ => a.name.cmp(&b.name),
+        device_list.sort_by(|a, b| match (a.connection_status, b.connection_status) {
+            (ConnectionStatus::Connected, ConnectionStatus::Disconnected) => {
+                std::cmp::Ordering::Less
             }
+            (ConnectionStatus::Disconnected, ConnectionStatus::Connected) => {
+                std::cmp::Ordering::Greater
+            }
+            _ => a.name.cmp(&b.name),
         });
 
         for device in device_list {
-            if device.connection_status == ConnectionStatus::Connected || config.ui.show_disconnected_devices {
+            if device.connection_status == ConnectionStatus::Connected
+                || config.ui.show_disconnected_devices
+            {
                 let row = self.create_device_detail_row(device)?;
                 self.device_list.append(&row);
             }
@@ -159,7 +173,9 @@ impl DetailsWindow {
         title_label.set_opacity(0.7);
         content_box.append(&title_label);
 
-        let subtitle_label = Label::new(Some("Make sure your Bluetooth and USB devices are connected"));
+        let subtitle_label = Label::new(Some(
+            "Make sure your Bluetooth and USB devices are connected",
+        ));
         subtitle_label.set_css_classes(&["body", "dim-label"]);
         subtitle_label.set_justify(gtk4::Justification::Center);
         subtitle_label.set_wrap(true);
@@ -205,7 +221,11 @@ impl DetailsWindow {
 
         info_box.append(&name_label);
 
-        let type_text = format!("{:?} • {}", device.device_type, get_connection_type_text(device));
+        let type_text = format!(
+            "{:?} • {}",
+            device.device_type,
+            get_connection_type_text(device)
+        );
         let type_label = Label::new(Some(&type_text));
         type_label.set_halign(gtk4::Align::Start);
         type_label.set_css_classes(&["caption", "dim-label"]);
@@ -281,7 +301,9 @@ impl DetailsWindow {
     fn format_last_seen(&self, last_seen: &SystemTime) -> String {
         match last_seen.duration_since(UNIX_EPOCH) {
             Ok(duration) => {
-                let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
+                let now = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default();
                 let seconds_ago = now.as_secs().saturating_sub(duration.as_secs());
 
                 if seconds_ago < 60 {
@@ -368,16 +390,20 @@ impl DetailsWindow {
         }
 
         let mut device_list_vec: Vec<_> = devices_guard.values().collect();
-        device_list_vec.sort_by(|a, b| {
-            match (a.connection_status, b.connection_status) {
-                (ConnectionStatus::Connected, ConnectionStatus::Disconnected) => std::cmp::Ordering::Less,
-                (ConnectionStatus::Disconnected, ConnectionStatus::Connected) => std::cmp::Ordering::Greater,
-                _ => a.name.cmp(&b.name),
+        device_list_vec.sort_by(|a, b| match (a.connection_status, b.connection_status) {
+            (ConnectionStatus::Connected, ConnectionStatus::Disconnected) => {
+                std::cmp::Ordering::Less
             }
+            (ConnectionStatus::Disconnected, ConnectionStatus::Connected) => {
+                std::cmp::Ordering::Greater
+            }
+            _ => a.name.cmp(&b.name),
         });
 
         for device in device_list_vec {
-            if device.connection_status == ConnectionStatus::Connected || config_guard.ui.show_disconnected_devices {
+            if device.connection_status == ConnectionStatus::Connected
+                || config_guard.ui.show_disconnected_devices
+            {
                 let row = Self::create_device_detail_row_static(device);
                 device_list.append(&row);
             }
@@ -408,7 +434,9 @@ impl DetailsWindow {
         title_label.set_opacity(0.7);
         content_box.append(&title_label);
 
-        let subtitle_label = Label::new(Some("Make sure your Bluetooth and USB devices are connected"));
+        let subtitle_label = Label::new(Some(
+            "Make sure your Bluetooth and USB devices are connected",
+        ));
         subtitle_label.set_css_classes(&["body", "dim-label"]);
         subtitle_label.set_justify(gtk4::Justification::Center);
         subtitle_label.set_wrap(true);
@@ -454,7 +482,11 @@ impl DetailsWindow {
 
         info_box.append(&name_label);
 
-        let type_text = format!("{:?} • {}", device.device_type, get_connection_type_text(device));
+        let type_text = format!(
+            "{:?} • {}",
+            device.device_type,
+            get_connection_type_text(device)
+        );
         let type_label = Label::new(Some(&type_text));
         type_label.set_halign(gtk4::Align::Start);
         type_label.set_css_classes(&["caption", "dim-label"]);
@@ -530,7 +562,9 @@ impl DetailsWindow {
     fn format_last_seen_static(last_seen: &SystemTime) -> String {
         match last_seen.duration_since(UNIX_EPOCH) {
             Ok(duration) => {
-                let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
+                let now = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default();
                 let seconds_ago = now.as_secs().saturating_sub(duration.as_secs());
 
                 if seconds_ago < 60 {

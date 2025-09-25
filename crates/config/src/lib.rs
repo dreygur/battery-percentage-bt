@@ -97,7 +97,10 @@ impl ConfigManager for FileConfigManager {
         let config_path = Self::get_config_path()?;
 
         if !config_path.exists() {
-            info!("Config file not found, creating default config at {:?}", config_path);
+            info!(
+                "Config file not found, creating default config at {:?}",
+                config_path
+            );
             let default_config = Config::default();
             let manager = FileConfigManager;
             manager.save(&default_config)?;
@@ -144,21 +147,27 @@ impl ConfigManager for FileConfigManager {
 
 impl FileConfigManager {
     fn validate_config(config: &Config) -> Result<(), ConfigError> {
-        if config.monitoring.polling_interval_seconds < 5 || config.monitoring.polling_interval_seconds > 300 {
+        if config.monitoring.polling_interval_seconds < 5
+            || config.monitoring.polling_interval_seconds > 300
+        {
             return Err(ConfigError::ValidationError(
-                "Polling interval must be between 5 and 300 seconds".to_string()
+                "Polling interval must be between 5 and 300 seconds".to_string(),
             ));
         }
 
-        if config.notifications.low_battery_threshold < 1 || config.notifications.low_battery_threshold > 99 {
+        if config.notifications.low_battery_threshold < 1
+            || config.notifications.low_battery_threshold > 99
+        {
             return Err(ConfigError::ValidationError(
-                "Low battery threshold must be between 1 and 99 percent".to_string()
+                "Low battery threshold must be between 1 and 99 percent".to_string(),
             ));
         }
 
-        if config.notifications.suppression_minutes < 1 || config.notifications.suppression_minutes > 60 {
+        if config.notifications.suppression_minutes < 1
+            || config.notifications.suppression_minutes > 60
+        {
             return Err(ConfigError::ValidationError(
-                "Notification suppression must be between 1 and 60 minutes".to_string()
+                "Notification suppression must be between 1 and 60 minutes".to_string(),
             ));
         }
 
@@ -191,7 +200,7 @@ impl Config {
     pub fn set_polling_interval(&mut self, seconds: u64) -> Result<(), ConfigError> {
         if seconds < 5 || seconds > 300 {
             return Err(ConfigError::ValidationError(
-                "Polling interval must be between 5 and 300 seconds".to_string()
+                "Polling interval must be between 5 and 300 seconds".to_string(),
             ));
         }
         self.monitoring.polling_interval_seconds = seconds;
@@ -201,7 +210,7 @@ impl Config {
     pub fn set_low_battery_threshold(&mut self, threshold: u8) -> Result<(), ConfigError> {
         if threshold < 1 || threshold > 99 {
             return Err(ConfigError::ValidationError(
-                "Low battery threshold must be between 1 and 99 percent".to_string()
+                "Low battery threshold must be between 1 and 99 percent".to_string(),
             ));
         }
         self.notifications.low_battery_threshold = threshold;
@@ -211,7 +220,7 @@ impl Config {
     pub fn set_suppression_minutes(&mut self, minutes: u64) -> Result<(), ConfigError> {
         if minutes < 1 || minutes > 60 {
             return Err(ConfigError::ValidationError(
-                "Notification suppression must be between 1 and 60 minutes".to_string()
+                "Notification suppression must be between 1 and 60 minutes".to_string(),
             ));
         }
         self.notifications.suppression_minutes = minutes;

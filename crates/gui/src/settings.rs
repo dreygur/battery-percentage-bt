@@ -2,8 +2,8 @@ use crate::GuiError;
 use battery_monitor_config::{Config, ConfigError};
 use gtk4::prelude::*;
 use gtk4::{
-    ApplicationWindow, Box, Button, CheckButton, HeaderBar, Label,
-    Orientation, Scale, SpinButton, Switch, Grid, Separator, Dialog, Window
+    ApplicationWindow, Box, Button, CheckButton, Dialog, Grid, HeaderBar, Label, Orientation,
+    Scale, Separator, SpinButton, Switch, Window,
 };
 use std::sync::{Arc, Mutex};
 use tracing::{debug, error, info};
@@ -96,7 +96,11 @@ impl SettingsDialog {
 
     fn rebuild_ui(&mut self) -> Result<(), GuiError> {
         let main_box = self.window.child().unwrap().downcast::<Box>().unwrap();
-        let scrolled = main_box.first_child().unwrap().downcast::<gtk4::ScrolledWindow>().unwrap();
+        let scrolled = main_box
+            .first_child()
+            .unwrap()
+            .downcast::<gtk4::ScrolledWindow>()
+            .unwrap();
         let content_box = scrolled.child().unwrap().downcast::<Box>().unwrap();
 
         while let Some(child) = content_box.first_child() {
@@ -231,7 +235,11 @@ impl SettingsDialog {
         group_box
     }
 
-    fn setup_event_handlers(&mut self, cancel_button: Button, save_button: Button) -> Result<(), GuiError> {
+    fn setup_event_handlers(
+        &mut self,
+        cancel_button: Button,
+        save_button: Button,
+    ) -> Result<(), GuiError> {
         let window = self.window.clone();
         cancel_button.connect_clicked(move |_| {
             window.close();
@@ -260,7 +268,11 @@ impl SettingsDialog {
                 &show_disconnected_devices_switch,
             ) {
                 error!("Failed to save config: {}", e);
-                Self::show_error_dialog(&window_clone, "Settings Save Failed", &format!("Failed to save settings: {}", e));
+                Self::show_error_dialog(
+                    &window_clone,
+                    "Settings Save Failed",
+                    &format!("Failed to save settings: {}", e),
+                );
             } else {
                 info!("Settings saved successfully");
                 window.close();
@@ -286,7 +298,8 @@ impl SettingsDialog {
         config_guard.monitoring.auto_start = auto_start_switch.is_active();
         config_guard.notifications.enabled = notifications_enabled_switch.is_active();
         config_guard.notifications.low_battery_threshold = low_battery_threshold_spin.value() as u8;
-        config_guard.notifications.show_connect_disconnect = show_connect_disconnect_switch.is_active();
+        config_guard.notifications.show_connect_disconnect =
+            show_connect_disconnect_switch.is_active();
         config_guard.notifications.suppression_minutes = suppression_minutes_spin.value() as u64;
         config_guard.ui.show_disconnected_devices = show_disconnected_devices_switch.is_active();
 
@@ -297,13 +310,20 @@ impl SettingsDialog {
     fn load_current_config(&mut self) -> Result<(), GuiError> {
         let config = self.config.lock().unwrap();
 
-        self.polling_interval_spin.set_value(config.monitoring.polling_interval_seconds as f64);
-        self.auto_start_switch.set_active(config.monitoring.auto_start);
-        self.notifications_enabled_switch.set_active(config.notifications.enabled);
-        self.low_battery_threshold_spin.set_value(config.notifications.low_battery_threshold as f64);
-        self.show_connect_disconnect_switch.set_active(config.notifications.show_connect_disconnect);
-        self.suppression_minutes_spin.set_value(config.notifications.suppression_minutes as f64);
-        self.show_disconnected_devices_switch.set_active(config.ui.show_disconnected_devices);
+        self.polling_interval_spin
+            .set_value(config.monitoring.polling_interval_seconds as f64);
+        self.auto_start_switch
+            .set_active(config.monitoring.auto_start);
+        self.notifications_enabled_switch
+            .set_active(config.notifications.enabled);
+        self.low_battery_threshold_spin
+            .set_value(config.notifications.low_battery_threshold as f64);
+        self.show_connect_disconnect_switch
+            .set_active(config.notifications.show_connect_disconnect);
+        self.suppression_minutes_spin
+            .set_value(config.notifications.suppression_minutes as f64);
+        self.show_disconnected_devices_switch
+            .set_active(config.ui.show_disconnected_devices);
 
         debug!("Loaded current configuration into settings dialog");
         Ok(())

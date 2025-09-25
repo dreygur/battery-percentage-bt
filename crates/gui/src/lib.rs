@@ -1,19 +1,21 @@
-use battery_monitor_core::{Device, ConnectionStatus, DeviceType};
 use battery_monitor_config::Config;
+use battery_monitor_core::{ConnectionStatus, Device, DeviceType};
 use gtk4::prelude::*;
-use gtk4::{Application, ApplicationWindow, Box, Button, Label, ListBox, ListBoxRow, Orientation, Separator};
+use gtk4::{
+    Application, ApplicationWindow, Box, Button, Label, ListBox, ListBoxRow, Orientation, Separator,
+};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use thiserror::Error;
 use tracing::{debug, error, info, warn};
 
-pub mod tray;
 pub mod details;
 pub mod settings;
+pub mod tray;
 
-pub use tray::*;
 pub use details::*;
 pub use settings::*;
+pub use tray::*;
 
 #[derive(Error, Debug)]
 pub enum GuiError {
@@ -38,9 +40,7 @@ pub struct BatteryMonitorGui {
 
 impl BatteryMonitorGui {
     pub fn new(app_id: &str) -> Result<Self, GuiError> {
-        let application = Application::builder()
-            .application_id(app_id)
-            .build();
+        let application = Application::builder().application_id(app_id).build();
 
         Ok(Self {
             application,
@@ -72,9 +72,10 @@ impl BatteryMonitorGui {
         let exit_code = self.application.run_with_args(&args);
 
         if exit_code != 0 {
-            return Err(GuiError::ApplicationError(
-                format!("Application exited with code {}", exit_code)
-            ));
+            return Err(GuiError::ApplicationError(format!(
+                "Application exited with code {}",
+                exit_code
+            )));
         }
 
         Ok(())
@@ -112,10 +113,7 @@ impl BatteryMonitorGui {
 
     pub fn show_details(&mut self) -> Result<(), GuiError> {
         if self.details_window.is_none() {
-            let details = DetailsWindow::new(
-                Arc::clone(&self.devices),
-                Arc::clone(&self.config),
-            )?;
+            let details = DetailsWindow::new(Arc::clone(&self.devices), Arc::clone(&self.config))?;
             self.details_window = Some(details);
         }
 
@@ -128,9 +126,7 @@ impl BatteryMonitorGui {
 
     pub fn show_settings(&mut self) -> Result<(), GuiError> {
         if self.settings_dialog.is_none() {
-            let settings = SettingsDialog::new(
-                Arc::clone(&self.config),
-            )?;
+            let settings = SettingsDialog::new(Arc::clone(&self.config))?;
             self.settings_dialog = Some(settings);
         }
 
@@ -194,7 +190,7 @@ pub fn get_connection_type_text(device: &Device) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use battery_monitor_core::{ConnectionType, ConnectionStatus};
+    use battery_monitor_core::{ConnectionStatus, ConnectionType};
     use std::time::SystemTime;
 
     fn create_test_device() -> Device {
@@ -223,11 +219,23 @@ mod tests {
 
     #[test]
     fn test_icon_name_mapping() {
-        assert_eq!(get_device_icon_name(&DeviceType::Mouse), "input-mouse-symbolic");
-        assert_eq!(get_device_icon_name(&DeviceType::Keyboard), "input-keyboard-symbolic");
+        assert_eq!(
+            get_device_icon_name(&DeviceType::Mouse),
+            "input-mouse-symbolic"
+        );
+        assert_eq!(
+            get_device_icon_name(&DeviceType::Keyboard),
+            "input-keyboard-symbolic"
+        );
         assert_eq!(get_device_icon_name(&DeviceType::Mobile), "phone-symbolic");
-        assert_eq!(get_device_icon_name(&DeviceType::Headphones), "audio-headphones-symbolic");
-        assert_eq!(get_device_icon_name(&DeviceType::Unknown), "battery-symbolic");
+        assert_eq!(
+            get_device_icon_name(&DeviceType::Headphones),
+            "audio-headphones-symbolic"
+        );
+        assert_eq!(
+            get_device_icon_name(&DeviceType::Unknown),
+            "battery-symbolic"
+        );
     }
 
     #[test]

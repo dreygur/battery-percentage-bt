@@ -1,11 +1,14 @@
-use crate::{GuiError, format_device_display_text, get_device_icon_name};
-use battery_monitor_core::{Device, ConnectionStatus};
+use crate::{format_device_display_text, get_device_icon_name, GuiError};
 use battery_monitor_config::{Config, ConfigError};
+use battery_monitor_core::{ConnectionStatus, Device};
 use gtk4::prelude::*;
-use gtk4::{Box, Button, Image, Label, Orientation, Popover, ListBox, ListBoxRow, Window, Dialog, Grid, SpinButton, Switch, Entry};
+use gtk4::{
+    Box, Button, Dialog, Entry, Grid, Image, Label, ListBox, ListBoxRow, Orientation, Popover,
+    SpinButton, Switch, Window,
+};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use tracing::{debug, error, info, warn};
 
 pub struct TrayIcon {
@@ -49,7 +52,10 @@ impl TrayIcon {
             self.device_buttons.push(device_button);
         }
 
-        debug!("Created tray widget with {} devices", self.device_buttons.len());
+        debug!(
+            "Created tray widget with {} devices",
+            self.device_buttons.len()
+        );
         Ok(main_box)
     }
 
@@ -99,13 +105,17 @@ impl TrayIcon {
     fn on_device_button_clicked(
         button: &Button,
         device_id: &str,
-        devices: Arc<Mutex<HashMap<String, Device>>>
+        devices: Arc<Mutex<HashMap<String, Device>>>,
     ) {
         let devices_guard = devices.lock().unwrap();
         if let Some(device) = devices_guard.get(device_id) {
-            info!("Device button clicked: {} ({}%)",
-                  device.name,
-                  device.battery_level.map_or("--".to_string(), |l| l.to_string()));
+            info!(
+                "Device button clicked: {} ({}%)",
+                device.name,
+                device
+                    .battery_level
+                    .map_or("--".to_string(), |l| l.to_string())
+            );
 
             Self::show_device_details_popup(button, device);
         }
@@ -221,7 +231,11 @@ impl TrayIcon {
             Ok(config) => config,
             Err(e) => {
                 error!("Failed to load configuration: {}", e);
-                Self::show_error_dialog(relative_to, "Failed to load settings", &format!("Error: {}", e));
+                Self::show_error_dialog(
+                    relative_to,
+                    "Failed to load settings",
+                    &format!("Error: {}", e),
+                );
                 return;
             }
         };
@@ -249,9 +263,7 @@ impl TrayIcon {
         content_box.set_margin_bottom(24);
 
         // Monitoring Section
-        let monitoring_frame = gtk4::Frame::builder()
-            .label("Monitoring")
-            .build();
+        let monitoring_frame = gtk4::Frame::builder().label("Monitoring").build();
 
         let monitoring_grid = Grid::new();
         monitoring_grid.set_row_spacing(8);
@@ -285,9 +297,7 @@ impl TrayIcon {
         content_box.append(&monitoring_frame);
 
         // Notifications Section
-        let notifications_frame = gtk4::Frame::builder()
-            .label("Notifications")
-            .build();
+        let notifications_frame = gtk4::Frame::builder().label("Notifications").build();
 
         let notifications_grid = Grid::new();
         notifications_grid.set_row_spacing(8);
@@ -341,9 +351,7 @@ impl TrayIcon {
         content_box.append(&notifications_frame);
 
         // UI Section
-        let ui_frame = gtk4::Frame::builder()
-            .label("User Interface")
-            .build();
+        let ui_frame = gtk4::Frame::builder().label("User Interface").build();
 
         let ui_grid = Grid::new();
         ui_grid.set_row_spacing(8);
@@ -448,7 +456,11 @@ impl TrayIcon {
             Err(e) => {
                 error!("Failed to save settings: {}", e);
                 if let Some(dialog) = dialog_weak.upgrade() {
-                    Self::show_error_dialog(&dialog, "Save Failed", &format!("Failed to save settings: {}", e));
+                    Self::show_error_dialog(
+                        &dialog,
+                        "Save Failed",
+                        &format!("Failed to save settings: {}", e),
+                    );
                 }
             }
         }
@@ -498,7 +510,10 @@ impl TrayIcon {
         error_dialog.present();
     }
 
-    fn show_details_window(relative_to: &impl IsA<gtk4::Widget>, devices: Arc<Mutex<HashMap<String, Device>>>) {
+    fn show_details_window(
+        relative_to: &impl IsA<gtk4::Widget>,
+        devices: Arc<Mutex<HashMap<String, Device>>>,
+    ) {
         info!("Details window requested");
 
         // Create details window
@@ -553,12 +568,14 @@ impl TrayIcon {
         // Create device cards
         let devices_guard = devices.lock().unwrap();
         let mut device_list: Vec<_> = devices_guard.values().collect();
-        device_list.sort_by(|a, b| {
-            match (a.connection_status, b.connection_status) {
-                (ConnectionStatus::Connected, ConnectionStatus::Disconnected) => std::cmp::Ordering::Less,
-                (ConnectionStatus::Disconnected, ConnectionStatus::Connected) => std::cmp::Ordering::Greater,
-                _ => a.name.cmp(&b.name),
+        device_list.sort_by(|a, b| match (a.connection_status, b.connection_status) {
+            (ConnectionStatus::Connected, ConnectionStatus::Disconnected) => {
+                std::cmp::Ordering::Less
             }
+            (ConnectionStatus::Disconnected, ConnectionStatus::Connected) => {
+                std::cmp::Ordering::Greater
+            }
+            _ => a.name.cmp(&b.name),
         });
         drop(devices_guard);
 
@@ -578,14 +595,16 @@ impl TrayIcon {
             empty_label.set_css_classes(&["title-2", "dim-label"]);
             empty_box.append(&empty_label);
 
-            let empty_subtitle = Label::new(Some("Make sure your devices are paired and turned on"));
+            let empty_subtitle =
+                Label::new(Some("Make sure your devices are paired and turned on"));
             empty_subtitle.set_css_classes(&["dim-label"]);
             empty_box.append(&empty_subtitle);
 
             content_box.append(&empty_box);
         } else {
             // Connected devices section
-            let connected_devices: Vec<_> = device_list.iter()
+            let connected_devices: Vec<_> = device_list
+                .iter()
                 .filter(|device| device.connection_status == ConnectionStatus::Connected)
                 .collect();
 
@@ -603,7 +622,8 @@ impl TrayIcon {
             }
 
             // Disconnected devices section
-            let disconnected_devices: Vec<_> = device_list.iter()
+            let disconnected_devices: Vec<_> = device_list
+                .iter()
                 .filter(|device| device.connection_status == ConnectionStatus::Disconnected)
                 .collect();
 
@@ -789,7 +809,10 @@ impl TrayIcon {
         info!("Tray updated: {} connected devices", connected_count);
     }
 
-    pub fn create_details_popover(&mut self, relative_to: &impl IsA<gtk4::Widget>) -> Result<Popover, GuiError> {
+    pub fn create_details_popover(
+        &mut self,
+        relative_to: &impl IsA<gtk4::Widget>,
+    ) -> Result<Popover, GuiError> {
         let popover = Popover::new();
         popover.set_parent(relative_to);
         popover.set_position(gtk4::PositionType::Bottom);
@@ -845,12 +868,14 @@ impl TrayIcon {
 
         let devices = self.devices.lock().unwrap();
         let mut device_list: Vec<_> = devices.values().collect();
-        device_list.sort_by(|a, b| {
-            match (a.connection_status, b.connection_status) {
-                (ConnectionStatus::Connected, ConnectionStatus::Disconnected) => std::cmp::Ordering::Less,
-                (ConnectionStatus::Disconnected, ConnectionStatus::Connected) => std::cmp::Ordering::Greater,
-                _ => a.name.cmp(&b.name),
+        device_list.sort_by(|a, b| match (a.connection_status, b.connection_status) {
+            (ConnectionStatus::Connected, ConnectionStatus::Disconnected) => {
+                std::cmp::Ordering::Less
             }
+            (ConnectionStatus::Disconnected, ConnectionStatus::Connected) => {
+                std::cmp::Ordering::Greater
+            }
+            _ => a.name.cmp(&b.name),
         });
 
         for device in device_list {

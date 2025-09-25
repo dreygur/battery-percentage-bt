@@ -1,10 +1,10 @@
-use crate::{Device, DeviceEvent, DeviceMonitor, CoreError};
 use crate::bluetooth::BluetoothScanner;
 use crate::usb::UsbScanner;
+use crate::{CoreError, Device, DeviceEvent, DeviceMonitor};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex as StdMutex};
-use tokio::sync::Mutex;
 use std::time::Duration;
+use tokio::sync::Mutex;
 use tokio::time::interval;
 use tracing::{debug, error, info, warn};
 
@@ -23,7 +23,10 @@ impl LinuxDeviceMonitor {
             devices: Arc::new(StdMutex::new(HashMap::new())),
             callbacks: Vec::new(),
             bluetooth_scanner: Arc::new(Mutex::new(BluetoothScanner::new().map_err(|e| {
-                CoreError::DeviceDetectionFailed(format!("Failed to initialize Bluetooth scanner: {}", e))
+                CoreError::DeviceDetectionFailed(format!(
+                    "Failed to initialize Bluetooth scanner: {}",
+                    e
+                ))
             })?)),
             usb_scanner: UsbScanner::new(),
             monitoring_task: None,
@@ -78,7 +81,11 @@ impl LinuxDeviceMonitor {
         events
     }
 
-    async fn monitoring_loop(&self, interval_duration: Duration, mut shutdown_receiver: tokio::sync::oneshot::Receiver<()>) {
+    async fn monitoring_loop(
+        &self,
+        interval_duration: Duration,
+        mut shutdown_receiver: tokio::sync::oneshot::Receiver<()>,
+    ) {
         let mut interval_timer = interval(interval_duration);
         interval_timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
@@ -151,11 +158,16 @@ impl DeviceMonitor for LinuxDeviceMonitor {
 
         let monitor = self.clone_for_monitoring();
         let task = tokio::spawn(async move {
-            monitor.monitoring_loop(interval_duration, shutdown_receiver).await;
+            monitor
+                .monitoring_loop(interval_duration, shutdown_receiver)
+                .await;
         });
 
         self.monitoring_task = Some(task);
-        info!("Device monitoring started with interval {:?}", interval_duration);
+        info!(
+            "Device monitoring started with interval {:?}",
+            interval_duration
+        );
         Ok(())
     }
 
@@ -192,10 +204,14 @@ impl LinuxDeviceMonitor {
     fn clone_for_monitoring(&self) -> MonitoringClone {
         MonitoringClone {
             devices: Arc::clone(&self.devices),
-            callbacks: self.callbacks.iter().map(|cb| {
-                let cb_ptr = cb.as_ref() as *const (dyn Fn(DeviceEvent) + Send + Sync);
-                unsafe { &*cb_ptr }
-            }).collect(),
+            callbacks: self
+                .callbacks
+                .iter()
+                .map(|cb| {
+                    let cb_ptr = cb.as_ref() as *const (dyn Fn(DeviceEvent) + Send + Sync);
+                    unsafe { &*cb_ptr }
+                })
+                .collect(),
             bluetooth_scanner: Arc::clone(&self.bluetooth_scanner),
             usb_scanner: self.usb_scanner.clone(),
         }
@@ -287,7 +303,11 @@ impl MonitoringClone {
         Ok(all_devices)
     }
 
-    async fn monitoring_loop(&self, interval_duration: Duration, mut shutdown_receiver: tokio::sync::oneshot::Receiver<()>) {
+    async fn monitoring_loop(
+        &self,
+        interval_duration: Duration,
+        mut shutdown_receiver: tokio::sync::oneshot::Receiver<()>,
+    ) {
         let mut interval_timer = interval(interval_duration);
         interval_timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 

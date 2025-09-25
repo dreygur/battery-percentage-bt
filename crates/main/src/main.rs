@@ -89,11 +89,11 @@ fn setup_logging(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             tracing_subscriber::fmt::layer()
                 .with_target(false)
                 .with_level(true)
-                .with_ansi(!args.no_color)
+                .with_ansi(!args.no_color),
         )
-        .with(
-            tracing_subscriber::filter::LevelFilter::from_level(log_level)
-        )
+        .with(tracing_subscriber::filter::LevelFilter::from_level(
+            log_level,
+        ))
         .init();
 
     Ok(())
