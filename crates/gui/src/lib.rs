@@ -51,11 +51,87 @@ impl BatteryMonitorGui {
     }
 
     pub fn initialize(&mut self) -> Result<(), GuiError> {
-        let _devices = Arc::clone(&self.devices);
-        let _config = Arc::clone(&self.config);
+        let devices = Arc::clone(&self.devices);
+        let config = Arc::clone(&self.config);
 
-        self.application.connect_activate(move |_app| {
+        self.application.connect_activate(move |app| {
             info!("GTK application activated");
+
+            // Create main window
+            let window = gtk4::ApplicationWindow::builder()
+                .application(app)
+                .title("Battery Monitor")
+                .default_width(400)
+                .default_height(300)
+                .build();
+
+            // Create main content box
+            let main_box = gtk4::Box::new(gtk4::Orientation::Vertical, 12);
+            main_box.set_margin_start(20);
+            main_box.set_margin_end(20);
+            main_box.set_margin_top(20);
+            main_box.set_margin_bottom(20);
+
+            // Header
+            let header_label = gtk4::Label::new(Some("Battery Monitor"));
+            header_label.set_markup("<b><big>Battery Monitor</big></b>");
+            header_label.set_halign(gtk4::Align::Center);
+            main_box.append(&header_label);
+
+            // Device list
+            let device_box = gtk4::Box::new(gtk4::Orientation::Vertical, 6);
+            let devices_guard = devices.lock().unwrap();
+
+            if devices_guard.is_empty() {
+                let no_devices_label = gtk4::Label::new(Some("No devices detected"));
+                no_devices_label.set_halign(gtk4::Align::Center);
+                device_box.append(&no_devices_label);
+            } else {
+                for device in devices_guard.values() {
+                    let device_row = gtk4::Box::new(gtk4::Orientation::Horizontal, 12);
+
+                    let icon = gtk4::Image::from_icon_name(get_device_icon_name(&device.device_type));
+                    device_row.append(&icon);
+
+                    let name_label = gtk4::Label::new(Some(&device.name));
+                    name_label.set_hexpand(true);
+                    name_label.set_halign(gtk4::Align::Start);
+                    device_row.append(&name_label);
+
+                    let battery_text = match device.battery_level {
+                        Some(level) => format!("{}%", level),
+                        None => "--".to_string(),
+                    };
+                    let battery_label = gtk4::Label::new(Some(&battery_text));
+                    device_row.append(&battery_label);
+
+                    device_box.append(&device_row);
+                }
+            }
+
+            main_box.append(&device_box);
+
+            // Buttons
+            let button_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 12);
+            button_box.set_halign(gtk4::Align::Center);
+
+            let refresh_button = gtk4::Button::with_label("Refresh");
+            let quit_button = gtk4::Button::with_label("Quit");
+
+            button_box.append(&refresh_button);
+            button_box.append(&quit_button);
+            main_box.append(&button_box);
+
+            // Connect quit button
+            let window_clone = window.clone();
+            quit_button.connect_clicked(move |_| {
+                window_clone.close();
+            });
+
+            window.set_child(Some(&main_box));
+            window.present();
+
+            info!("Main window created and presented");
         });
 
         let tray_icon = TrayIcon::new(Arc::clone(&self.devices))?;

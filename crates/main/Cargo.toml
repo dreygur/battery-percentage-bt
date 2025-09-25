@@ -22,10 +22,10 @@ signal-hook-tokio = { version = "0.3", features = ["futures-v0_3"] }
 tokio-stream = "0.1"
 toml = { workspace = true }
 
-# Optional GUI dependencies - disabled for now to get basic version working
-# battery-monitor-gui = { path = "../gui", optional = true }
-# gtk4 = { workspace = true, optional = true }
+# GUI dependencies
+battery-monitor-gui = { path = "../gui", optional = true }
+gtk4 = { workspace = true, optional = true }
 
 [features]
-default = []
-# gui = ["battery-monitor-gui", "gtk4"]
+default = ["gui"]
+gui = ["battery-monitor-gui", "gtk4"]

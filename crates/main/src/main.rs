@@ -71,8 +71,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = load_or_create_config().await?;
     info!("Configuration loaded from {:?}", Config::get_config_path()?);
 
-    info!("Running in CLI/daemon mode (no GUI)");
-    run_daemon(config).await
+    if args.daemon {
+        info!("Running in daemon mode (no GUI)");
+        run_daemon(config).await
+    } else {
+        info!("Starting GUI mode");
+        run_gui(config).await
+    }
 }
 
 fn setup_logging(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
@@ -97,6 +102,12 @@ fn setup_logging(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     Ok(())
+}
+
+#[cfg(not(feature = "gui"))]
+async fn run_gui(_config: Config) -> Result<(), Box<dyn std::error::Error>> {
+    eprintln!("GUI support not compiled in. Use --daemon flag for daemon mode or rebuild with GUI support.");
+    std::process::exit(1);
 }
 
 async fn load_or_create_config() -> Result<Config, Box<dyn std::error::Error>> {
@@ -148,5 +159,27 @@ async fn run_daemon(config: Config) -> Result<(), Box<dyn std::error::Error>> {
 
     handle.close();
     info!("Battery Monitor daemon stopped");
+    Ok(())
+}
+
+#[cfg(feature = "gui")]
+async fn run_gui(config: Config) -> Result<(), Box<dyn std::error::Error>> {
+    use battery_monitor_gui::BatteryMonitorGui;
+    use std::collections::HashMap;
+
+    info!("Initializing GUI application");
+
+    let mut gui = BatteryMonitorGui::new("com.example.BatteryMonitor")?;
+
+    // Update the GUI with initial config and empty devices
+    gui.update_config(config.clone());
+    gui.update_devices(HashMap::new());
+
+    // Initialize the GUI components
+    gui.initialize()?;
+
+    info!("Starting GUI application");
+    gui.run()?;
+
     Ok(())
 }
