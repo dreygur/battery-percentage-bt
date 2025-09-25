@@ -1,13 +1,11 @@
 use battery_monitor_config::Config;
 use battery_monitor_core::{ConnectionStatus, Device, DeviceType};
 use gtk4::prelude::*;
-use gtk4::{
-    Application, ApplicationWindow, Box, Button, Label, ListBox, ListBoxRow, Orientation, Separator,
-};
+use gtk4::Application;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use thiserror::Error;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 pub mod details;
 pub mod settings;
@@ -53,10 +51,10 @@ impl BatteryMonitorGui {
     }
 
     pub fn initialize(&mut self) -> Result<(), GuiError> {
-        let devices = Arc::clone(&self.devices);
-        let config = Arc::clone(&self.config);
+        let _devices = Arc::clone(&self.devices);
+        let _config = Arc::clone(&self.config);
 
-        self.application.connect_activate(move |app| {
+        self.application.connect_activate(move |_app| {
             info!("GTK application activated");
         });
 
@@ -71,9 +69,9 @@ impl BatteryMonitorGui {
         let args: Vec<String> = std::env::args().collect();
         let exit_code = self.application.run_with_args(&args);
 
-        if exit_code != 0 {
+        if exit_code != 0.into() {
             return Err(GuiError::ApplicationError(format!(
-                "Application exited with code {}",
+                "Application exited with code {:?}",
                 exit_code
             )));
         }

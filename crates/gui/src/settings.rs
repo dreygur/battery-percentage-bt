@@ -2,8 +2,8 @@ use crate::GuiError;
 use battery_monitor_config::{Config, ConfigError};
 use gtk4::prelude::*;
 use gtk4::{
-    ApplicationWindow, Box, Button, CheckButton, Dialog, Grid, HeaderBar, Label, Orientation,
-    Scale, Separator, SpinButton, Switch, Window,
+    ApplicationWindow, Box, Button, Dialog, Grid, HeaderBar, Label, Orientation, SpinButton,
+    Switch,
 };
 use std::sync::{Arc, Mutex};
 use tracing::{debug, error, info};
@@ -20,12 +20,12 @@ pub struct SettingsDialog {
     suppression_minutes_spin: SpinButton,
     show_disconnected_devices_switch: Switch,
 
-    on_config_changed: Option<Box<dyn Fn(Config) + Send + Sync>>,
+    on_config_changed: Option<std::boxed::Box<dyn Fn(Config) + Send + Sync>>,
 }
 
 impl SettingsDialog {
     pub fn new(config: Arc<Mutex<Config>>) -> Result<Self, GuiError> {
-        let window = ApplicationWindow::new(&gtk4::Application::default().unwrap());
+        let window = ApplicationWindow::new(&gtk4::Application::default());
         window.set_title(Some("Battery Monitor - Settings"));
         window.set_default_size(450, 500);
         window.set_resizable(false);
@@ -350,7 +350,7 @@ impl SettingsDialog {
     where
         F: Fn(Config) + Send + Sync + 'static,
     {
-        self.on_config_changed = Some(Box::new(callback));
+        self.on_config_changed = Some(std::boxed::Box::new(callback));
     }
 
     fn show_error_dialog(parent_window: &ApplicationWindow, title: &str, message: &str) {

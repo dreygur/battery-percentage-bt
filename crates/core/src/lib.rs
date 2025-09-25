@@ -38,7 +38,7 @@ pub enum ConnectionType {
     Wireless2_4G,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum ConnectionStatus {
     Connected,
     Disconnected,

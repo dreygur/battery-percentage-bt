@@ -1,13 +1,12 @@
 use crate::{
-    format_device_display_text, get_connection_status_text, get_connection_type_text,
-    get_device_icon_name, GuiError,
+    get_connection_status_text, get_connection_type_text, get_device_icon_name, GuiError,
 };
 use battery_monitor_config::Config;
 use battery_monitor_core::{ConnectionStatus, Device};
 use gtk4::prelude::*;
 use gtk4::{
     ApplicationWindow, Box, Button, HeaderBar, Image, Label, ListBox, ListBoxRow, Orientation,
-    ScrolledWindow, Separator,
+    ScrolledWindow,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -26,7 +25,7 @@ impl DetailsWindow {
         devices: Arc<Mutex<HashMap<String, Device>>>,
         config: Arc<Mutex<Config>>,
     ) -> Result<Self, GuiError> {
-        let window = ApplicationWindow::new(&gtk4::Application::default().unwrap());
+        let window = ApplicationWindow::new(&gtk4::Application::default());
         window.set_title(Some("Battery Monitor - Device Details"));
         window.set_default_size(500, 400);
         window.set_resizable(true);
@@ -360,7 +359,7 @@ impl DetailsWindow {
         let devices_clone = Arc::clone(&devices);
         let config_clone = Arc::clone(&config);
 
-        glib::timeout_add_local(std::time::Duration::from_millis(1000), move || {
+        gtk4::glib::timeout_add_local(std::time::Duration::from_millis(1000), move || {
             if let Some(device_list) = device_list_weak.upgrade() {
                 // Clear loading indicator
                 while let Some(child) = device_list.first_child() {
@@ -371,7 +370,7 @@ impl DetailsWindow {
                 Self::populate_device_list_static(&device_list, &devices_clone, &config_clone);
             }
 
-            glib::ControlFlow::Break
+            gtk4::glib::ControlFlow::Break
         });
     }
 

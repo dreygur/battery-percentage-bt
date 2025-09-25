@@ -1,15 +1,15 @@
-use crate::{format_device_display_text, get_device_icon_name, GuiError};
-use battery_monitor_config::{Config, ConfigError};
+use crate::{get_device_icon_name, GuiError};
+use battery_monitor_config::Config;
 use battery_monitor_core::{ConnectionStatus, Device};
 use gtk4::prelude::*;
 use gtk4::{
-    Box, Button, Dialog, Entry, Grid, Image, Label, ListBox, ListBoxRow, Orientation, Popover,
+    Box, Button, Dialog, Grid, Image, Label, ListBox, ListBoxRow, Orientation, Popover,
     SpinButton, Switch, Window,
 };
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 pub struct TrayIcon {
     devices: Arc<Mutex<HashMap<String, Device>>>,
@@ -68,7 +68,7 @@ impl TrayIcon {
 
         let icon_name = get_device_icon_name(&device.device_type);
         let icon = Image::from_icon_name(icon_name);
-        icon.set_icon_size(gtk4::IconSize::Small);
+        icon.set_icon_size(gtk4::IconSize::Normal);
         button_box.append(&icon);
 
         let battery_text = match device.battery_level {
@@ -423,7 +423,7 @@ impl TrayIcon {
     }
 
     fn save_settings_and_close(
-        dialog_weak: &glib::WeakRef<Dialog>,
+        dialog_weak: &gtk4::glib::WeakRef<Dialog>,
         polling_spin: &SpinButton,
         autostart_switch: &Switch,
         notifications_enabled_switch: &Switch,
@@ -577,7 +577,7 @@ impl TrayIcon {
             }
             _ => a.name.cmp(&b.name),
         });
-        drop(devices_guard);
+
 
         if device_list.is_empty() {
             // Empty state
@@ -615,7 +615,7 @@ impl TrayIcon {
                 connected_label.set_margin_bottom(8);
                 content_box.append(&connected_label);
 
-                for device in connected_devices {
+                for device in &connected_devices {
                     let device_card = Self::create_device_detail_card(device, true);
                     content_box.append(&device_card);
                 }
