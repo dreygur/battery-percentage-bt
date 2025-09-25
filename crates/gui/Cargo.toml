@@ -1,0 +1,15 @@
+[package]
+name = "battery-monitor-gui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+battery-monitor-core = { path = "../core" }
+battery-monitor-config = { path = "../config" }
+gtk4 = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+glib = "0.17"
+gio = "0.17"

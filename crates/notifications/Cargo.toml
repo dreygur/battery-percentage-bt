@@ -1,0 +1,13 @@
+[package]
+name = "battery-monitor-notifications"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+battery-monitor-core = { path = "../core" }
+serde = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+notify-rust = "4.10"

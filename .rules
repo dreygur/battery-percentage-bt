@@ -1,0 +1,408 @@
+# Claude Code System Prompt - Linux Battery Monitor Project
+
+## Project Overview
+You are co-programming a Linux battery monitor application that displays battery levels of Bluetooth devices and USB/wireless 2.4GHz keyboards in the system tray across all desktop environments.
+Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
+
+## Architecture Requirements
+
+### Workspace Structure
+```
+battery-monitor/
+├── core/           # Device detection & battery reading logic
+├── gui/            # System tray & settings interface (GTK4-rs)
+├── notifications/  # Alert system with suppression & logging
+├── config/         # Configuration management (TOML)
+└── main/           # Binary entry point & orchestration
+```
+
+### Core Data Structures
+```rust
+struct Device {
+    id: String,
+    name: String,
+    device_type: DeviceType,     // Mouse, Keyboard, Mobile, Buds (expand as needed)
+    connection_type: ConnectionType, // Bluetooth, USB, Wireless2_4G
+    battery_level: Option<u8>,   // 0-100 or None
+    connection_status: ConnectionStatus, // Connected, Disconnected
+    last_seen: SystemTime,
+}
+
+enum DeviceType {
+    Mouse,
+    Keyboard,
+    Mobile,
+    Buds,
+    // Others as needed - expand during implementation
+}
+
+enum ConnectionType {
+    Bluetooth,
+    USB,
+    Wireless2_4G,
+}
+
+enum ConnectionStatus {
+    Connected,
+    Disconnected,
+}
+```
+
+### Communication Patterns & Interfaces
+
+#### Core Crate Interface
+```rust
+// Core crate public interface using observer pattern
+pub trait DeviceMonitor {
+    fn subscribe(&mut self, callback: Box<dyn Fn(DeviceEvent)>);
+    fn start_monitoring(&mut self, interval: Duration) -> Result<(), Error>;
+    fn stop_monitoring(&mut self);
+    fn get_current_devices(&self) -> Vec<Device>;
+}
+
+pub enum DeviceEvent {
+    DeviceAdded(Device),
+    DeviceUpdated(Device),
+    DeviceRemoved(String), // device id
+    BatteryChanged(String, u8), // device id, new level
+}
+```
+
+#### Config Crate Interface
+```rust
+pub struct Config {
+    pub polling_interval: Duration,
+    pub low_battery_threshold: u8,
+    pub auto_start: bool,
+    pub notifications_enabled: bool,
+    pub show_disconnected_devices: bool,
+}
+
+pub trait ConfigManager {
+    fn load() -> Result<Config, Error>;
+    fn save(&self, config: &Config) -> Result<(), Error>;
+    fn get_config_path() -> PathBuf;
+}
+
+impl ConfigManager {
+    fn load() -> Result<Config, Error> {
+        // Load from ~/.config/battery-monitor/config.toml
+        // Apply validation (threshold 1-99, polling interval 5-300 seconds, etc.)
+    }
+
+    fn save(&self, config: &Config) -> Result<(), Error> {
+        // Validate before saving
+        // Write to XDG config directory
+    }
+}
+```
+
+#### Notifications Crate Interface
+```rust
+pub enum NotificationType {
+    LowBattery { device: Device, threshold: u8 },
+    DeviceConnected(Device),
+    DeviceDisconnected(Device),
+}
+
+pub trait NotificationManager {
+    fn send_notification(&mut self, notification: NotificationType) -> Result<(), Error>;
+    fn is_enabled(&self) -> bool;
+    fn set_enabled(&mut self, enabled: bool);
+    fn get_notification_log(&self) -> Vec<NotificationRecord>;
+    fn clear_log(&mut self);
+}
+
+pub struct NotificationRecord {
+    pub timestamp: SystemTime,
+    pub notification_type: NotificationType,
+    pub sent: bool, // false if suppressed
+}
+
+// Internal suppression logic
+struct NotificationState {
+    last_low_battery_alert: HashMap<String, SystemTime>, // device_id -> timestamp
+    suppression_duration: Duration, // e.g., 5 minutes to avoid spam
+}
+```
+
+#### GUI Crate Interface
+```rust
+// Event-driven architecture with separate components
+pub struct TrayIcon {
+    // Lightweight, always running
+    devices: Arc<Mutex<Vec<Device>>>,
+}
+
+pub struct DetailsWindow {
+    // Created on-demand when clicked
+    // Shows device name, connection type, connection status, last update time
+    // Connected devices normal, disconnected devices grayed out
+}
+
+pub struct SettingsDialog {
+    // Created on-demand when accessed
+    // Simple GUI for all configuration options
+}
+
+impl TrayIcon {
+    pub fn new() -> Self;
+    pub fn update_devices(&mut self, devices: Vec<Device>);
+    pub fn show_details(&self);
+    pub fn show_settings(&self);
+}
+```
+
+#### Main Crate Structure
+```rust
+// main/src/main.rs
+struct BatteryMonitorApp {
+    device_monitor: Box<dyn DeviceMonitor>,
+    gui: TrayIcon,
+    notifications: Box<dyn NotificationManager>,
+    config: Config,
+    shutdown_signal: tokio::sync::oneshot::Receiver<()>,
+}
+
+impl BatteryMonitorApp {
+    async fn run(&mut self) -> Result<(), Error> {
+        // Set up signal handlers (SIGTERM, SIGINT)
+        // Load configuration
+        // Start device monitoring with configured interval
+        // Initialize GUI components
+        // Set up event subscriptions (observer pattern)
+        // Main event loop with crash recovery
+        // Graceful shutdown sequence
+    }
+
+    fn setup_crash_recovery(&self) -> Result<(), Error> {
+        // Restart logic
+        // Error logging
+        // State preservation
+    }
+
+    fn setup_signal_handlers(&mut self) {
+        // Handle SIGTERM, SIGINT for graceful shutdown
+    }
+}
+```
+
+## Functional Requirements
+
+### Core Functionality
+- Monitor Bluetooth devices and USB/wireless 2.4GHz keyboards
+- Standard user permissions only (no sudo/root required)
+- Cross-desktop environment compatibility (GNOME, KDE, XFCE, etc.)
+- User-configurable polling frequency (default: 30 seconds, range: 5-300 seconds)
+- Device detection using system APIs accessible to standard users
+
+### UI Requirements
+- System tray integration with icon + percentage text per device
+- Individual entries for each connected device on status bar
+- Details view on click/hover showing:
+  - Device name and connection type
+  - Connection status (connected/disconnected)
+  - Current battery level
+  - Last update timestamp
+- Show connected devices on status bar in normal display
+- Show disconnected devices only in details view (grayed out styling)
+- Simple GUI for configuration settings
+- No battery history tracking or trend analysis
+
+### Notification System
+- Low battery alerts with user-configurable thresholds (default: 20%)
+- Device connected/disconnected notifications
+- Notification suppression to prevent spam (5-minute default suppression window)
+- Support multiple backends (libnotify, D-Bus, system-specific)
+- Notification logging with timestamps and delivery status
+- User can enable/disable notification categories
+
+### Configuration Management
+- TOML format stored in `~/.config/battery-monitor/config.toml` (XDG standards)
+- Configurable auto-start option (integrate with desktop environment)
+- Input validation for all settings:
+  - Battery threshold: 1-99%
+  - Polling interval: 5-300 seconds
+  - Notification suppression: 1-60 minutes
+- Default configuration file creation on first run
+
+## Technical Specifications
+
+### Technology Stack
+- **Primary Language**: Rust (latest stable)
+- **GUI Framework**: GTK4-rs for cross-DE Linux compatibility
+- **Config Format**: TOML with serde serialization
+- **Async Runtime**: Tokio for non-blocking operations
+- **Architecture**: Event-driven with observer pattern
+- **System APIs**: D-Bus, sysfs, upower (user-accessible interfaces only)
+
+### Dependencies (Add to Cargo.toml)
+```toml
+[workspace]
+members = ["core", "gui", "notifications", "config", "main"]
+
+[workspace.dependencies]
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+gtk4 = "0.7"
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+```
+
+### Development Approach
+1. **Architecture Phase**: Design interfaces and data structures (COMPLETED)
+2. **Core Implementation**: Start with device detection logic
+3. **Independent Testing**: Build and test each crate separately
+4. **GUI Integration**: Add system tray and basic UI
+5. **Notifications**: Implement alert system
+6. **Configuration**: Add settings management
+7. **Main Orchestration**: Wire all components together
+8. **Integration Testing**: Test complete system functionality
+9. **Cross-DE Testing**: Verify compatibility across desktop environments
+
+### Main Crate Responsibilities
+- Handle graceful shutdown (SIGTERM, SIGINT signals)
+- Include crash recovery and restart logic with state preservation
+- Manage async runtime for entire application
+- Orchestrate all components with proper lifecycle management
+- Set up inter-component communication via observer pattern
+- Error logging and diagnostic information
+
+## Implementation Guidelines
+
+### Code Style & Standards
+- Follow Rust best practices and idioms (clippy::all)
+- Include comprehensive error handling with custom error types
+- Write unit tests for each crate (aim for >80% coverage)
+- Use proper async/await patterns throughout
+- Implement traits for clean interfaces between crates
+- Include documentation comments for all public APIs
+- Use structured logging with tracing crate
+
+### Error Handling Strategy
+```rust
+// Custom error types for each crate
+#[derive(thiserror::Error, Debug)]
+pub enum CoreError {
+    #[error("Device detection failed: {0}")]
+    DeviceDetectionFailed(String),
+    #[error("Permission denied accessing device: {device_id}")]
+    PermissionDenied { device_id: String },
+    #[error("System API error: {0}")]
+    SystemApiError(#[from] std::io::Error),
+}
+```
+
+### Testing Requirements
+- Unit tests for each crate with mock implementations
+- Integration tests for component interaction
+- Test cross-DE compatibility where possible (CI/CD)
+- Error path testing for device detection failures
+- Performance tests for polling efficiency
+- Memory leak testing for long-running operation
+
+### Performance Considerations
+- Lazy loading for heavy GUI components (details window, settings dialog)
+- Efficient memory usage with `Arc<Mutex<>>` for shared state
+- Non-blocking UI updates via event system
+- Debounced device updates to prevent UI thrashing
+- Minimal system resource usage during polling
+- Proper cleanup of resources on shutdown
+
+## System Integration Details
+
+### Device Detection Strategy
+```rust
+// Core crate implementation approach
+impl DeviceMonitor for LinuxDeviceMonitor {
+    fn refresh_devices(&mut self) -> Result<(), Error> {
+        // 1. Scan /sys/class/power_supply/ for battery devices
+        // 2. Query D-Bus for Bluetooth device information
+        // 3. Check USB HID devices with battery capability
+        // 4. Parse device information and battery levels
+        // 5. Update internal device list
+        // 6. Notify observers of changes
+    }
+}
+```
+
+### Cross-DE Compatibility Approach
+- Use GTK4-rs system tray abstraction
+- Fallback mechanisms for different desktop environments
+- Test on GNOME, KDE, XFCE, Cinnamon, MATE
+- Handle DE-specific quirks and limitations
+
+### Configuration File Structure
+```toml
+# ~/.config/battery-monitor/config.toml
+[monitoring]
+polling_interval_seconds = 30
+auto_start = false
+
+[notifications]
+enabled = true
+low_battery_threshold = 20
+show_connect_disconnect = true
+suppression_minutes = 5
+
+[ui]
+show_disconnected_devices = true
+```
+
+## Implementation Notes & Constraints
+
+### Critical Requirements
+- **Standard user permissions only** - cannot require root/sudo
+- **Cross-desktop compatibility** - must work on all major Linux DEs
+- **Event-driven architecture** - no polling in UI thread
+- **Resource efficiency** - minimal CPU/memory usage
+- **Graceful degradation** - continue working if some devices undetectable
+
+### Device Type Detection Heuristics
+```rust
+fn detect_device_type(device_name: &str, device_class: Option<u32>) -> DeviceType {
+    // Use device name patterns and Bluetooth device classes
+    // Mouse: class 0x002580, names containing "mouse"
+    // Keyboard: class 0x002540, names containing "keyboard"
+    // Headphones/Buds: class 0x240404, audio device indicators
+    // Default to generic if uncertain
+}
+```
+
+### Error Recovery Strategies
+- Retry device detection on transient failures
+- Continue monitoring available devices if some fail
+- Log errors for debugging without stopping application
+- Provide user feedback for persistent issues
+
+### Memory Management
+- Use weak references where appropriate to prevent cycles
+- Clean up device entries after extended disconnection
+- Limit notification log size with rotation
+- Profile memory usage during extended operation
+
+## Development Workflow
+
+### Initial Setup Steps
+1. Create cargo workspace with defined crate structure
+2. Set up basic crate dependencies and interfaces
+3. Implement core device detection logic with unit tests
+4. Create minimal GTK4-rs system tray application
+5. Add inter-crate communication and event handling
+6. Implement configuration management and persistence
+7. Add notification system with suppression logic
+8. Create main application orchestration
+9. Integration testing and cross-DE verification
+10. Documentation and deployment preparation
+
+### Testing Strategy per Phase
+- **Core**: Mock system APIs, test device detection logic
+- **GUI**: Test UI components in isolation, verify tray integration
+- **Notifications**: Test different backends, verify suppression
+- **Config**: Test serialization, validation, file I/O
+- **Main**: Integration tests, signal handling, crash recovery
+
+When implementing any feature, always consider the complete system context and maintain clean separation of concerns between crates. Start with the simplest working implementation and iterate toward full functionality.

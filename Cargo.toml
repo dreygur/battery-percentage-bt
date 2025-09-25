@@ -1,14 +1,15 @@
-[package]
-name = "battery_percentage"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+members = ["crates/core", "crates/gui", "crates/notifications", "crates/config", "crates/main"]
+resolver = "2"
 
-[[bin]]
-name = "bluetooth_only"
-path = "src/bin/bluetooth_only.rs"
-
-[dependencies]
-tokio = { version = "1", features = ["full"] }
-bluer = { version = "0.17.4", features = ["full"] }
-futures = "0.3.31"
-hidapi = "2.6"
+[workspace.dependencies]
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+gtk4 = "0.7"
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+zbus = "3.0"
+uuid = { version = "1.0", features = ["v4"] }

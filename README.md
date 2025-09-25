@@ -1,137 +1,336 @@
-# Battery Monitor
+# Battery Monitor for Linux
 
-Keep track of your Bluetooth devices and keyboard battery levels right from your GNOME status bar. I built this because I got tired of my AirPods dying unexpectedly and my Ajazz AK870 keyboard running out of juice at the worst possible moments.
+A comprehensive battery monitoring application for Linux that tracks battery levels of Bluetooth devices, USB keyboards, and wireless 2.4GHz peripherals. Features system tray integration, configurable notifications, and cross-desktop environment compatibility.
 
-## What it does
+## Features
 
-This app monitors battery levels for your connected devices and shows them in your status bar with desktop notifications. It's particularly good at tracking the Ajazz AK870 keyboard, which can be tricky to monitor otherwise.
+- **Device Detection**: Automatically detects Bluetooth devices and USB/wireless keyboards with battery information
+- **System Tray Integration**: Displays battery levels directly in the system tray across all desktop environments
+- **Smart Notifications**: Configurable low battery alerts with spam prevention
+- **Cross-Platform**: Works on GNOME, KDE, XFCE, and other Linux desktop environments
+- **No Root Required**: Operates with standard user permissions
+- **Configurable**: TOML-based configuration with validation
+- **Daemon Mode**: Can run as a background service without GUI
 
-**Devices it tracks:**
+## Supported Devices
 
-- Bluetooth headphones, earbuds (like AirPods)
-- Bluetooth mice and other peripherals
-- Your phone when connected via Bluetooth
-- The Ajazz AK870 keyboard (and other USB keyboards)
-- Pretty much any Bluetooth device that reports battery info
+- Bluetooth mice, keyboards, headphones, earbuds, phones, and tablets
+- USB HID devices (keyboards, mice) with battery capability
+- Wireless 2.4GHz peripherals
+- Any device exposing battery information via `/sys/class/power_supply/`
 
-## How it works
+## Installation
 
-The app is split into two main parts:
+### Prerequisites
 
-- `bluetooth.rs` handles all the Bluetooth device discovery and battery monitoring
-- `keyboard.rs` deals with USB keyboards, especially the AK870
+- Rust 1.70+ (latest stable recommended)
+- GTK4 development libraries
+- D-Bus system access (standard on most Linux distributions)
 
-It runs in the background and updates your status bar every 30 seconds, plus sends notifications when things change.
+#### Ubuntu/Debian
 
-## Getting started
+```bash
+sudo apt install build-essential libgtk-4-dev libdbus-1-dev pkg-config
+```
 
-First, build the project:
+#### Fedora/RHEL
+
+```bash
+sudo dnf install gcc gtk4-devel dbus-devel pkgconfig
+```
+
+#### Arch Linux
+
+```bash
+sudo pacman -S base-devel gtk4 dbus pkgconf
+```
+
+### Building from Source
+
+1. Clone the repository:
+
+```bash
+git clone <repository-url>
+cd battery_percentage
+```
+
+2. Build the application:
 
 ```bash
 cargo build --release
 ```
 
-Then set up the GNOME integration:
+3. Install (optional):
 
 ```bash
-./gnome-integration.sh
-systemctl --user daemon-reload
-systemctl --user enable bluetooth-battery-monitor.service
-systemctl --user start bluetooth-battery-monitor.service
+cargo install --path main
 ```
 
-## Running it
+The binary will be available as `battery-monitor`.
 
-You can run it manually to see what's happening:
+## Usage
+
+### GUI Mode (Default)
 
 ```bash
-./target/debug/battery_percentage
+battery-monitor
 ```
 
-Or if you want just the status bar output:
+### Daemon Mode (No GUI)
 
 ```bash
-./status-bar-reader.sh
+battery-monitor --daemon
 ```
 
-## What you'll see
-
-The app displays your devices like this:
-
-- 🎧 Headphones: 85%
-- ⌨️ AK870 Keyboard: 92%
-- 📱 Phone: 78%
-
-## About the AK870 keyboard support
-
-Getting battery info from the Ajazz AK870 was surprisingly tricky. The keyboard uses device ID `05ac:024f` and doesn't always play nice with standard battery reporting.
-
-I ended up using direct HID access through hidapi, which tries several different methods:
-
-1. Scanning all HID devices to find keyboards
-2. Looking for specific vendor/product IDs
-3. Trying multiple battery report formats
-4. Falling back to system interfaces when direct access fails
-
-If your AK870 isn't being detected, try running with sudo first to rule out permission issues:
+### Command Line Options
 
 ```bash
-sudo ./target/debug/battery_percentage
+# Show help
+battery-monitor --help
+
+# Run with verbose logging
+battery-monitor --verbose
+
+# Run quietly (errors only)
+battery-monitor --quiet
+
+# Show configuration file location
+battery-monitor --show-config
+
+# Validate configuration
+battery-monitor --check-config
+
+# Print default configuration
+battery-monitor --print-default-config
+
+# Reset configuration to defaults
+battery-monitor --reset-config
 ```
 
-You might also need to add yourself to the input group:
+## Configuration
+
+Configuration is stored in `~/.config/battery-monitor/config.toml` and follows XDG standards.
+
+### Default Configuration
+
+```toml
+[monitoring]
+polling_interval_seconds = 30
+auto_start = false
+
+[notifications]
+enabled = true
+low_battery_threshold = 20
+show_connect_disconnect = true
+suppression_minutes = 5
+
+[ui]
+show_disconnected_devices = true
+```
+
+### Configuration Options
+
+#### Monitoring Section
+
+- `polling_interval_seconds` (5-300): How often to check device battery levels
+- `auto_start` (boolean): Start automatically with desktop session
+
+#### Notifications Section
+
+- `enabled` (boolean): Enable/disable all notifications
+- `low_battery_threshold` (1-99): Battery percentage threshold for alerts
+- `show_connect_disconnect` (boolean): Show device connection/disconnection notifications
+- `suppression_minutes` (1-60): Minutes to suppress repeat notifications
+
+#### UI Section
+
+- `show_disconnected_devices` (boolean): Show disconnected devices in details view
+
+## Architecture
+
+The application is built using a modular architecture with separate crates organized under the `crates/` directory:
+
+```
+battery-monitor/
+├── crates/
+│   ├── core/           # Device detection & battery reading logic
+│   ├── gui/            # System tray & settings interface (GTK4-rs)
+│   ├── notifications/  # Alert system with suppression & logging
+│   ├── config/         # Configuration management (TOML)
+│   └── main/           # Binary entry point & orchestration
+├── target/             # Build artifacts
+└── README.md           # This file
+```
+
+### Core Components
+
+- **Device Monitor**: Scans for devices using D-Bus (Bluetooth) and sysfs (USB/wireless)
+- **GUI System**: GTK4-based system tray with popover details and settings dialog
+- **Notification Manager**: Desktop notifications with intelligent suppression
+- **Config Manager**: TOML configuration with validation and XDG compliance
+
+## Development
+
+### Project Structure
+
+```
+├── crates/
+│   ├── core/src/
+│   │   ├── lib.rs              # Core data structures and traits
+│   │   ├── device_monitor.rs   # Main monitoring logic
+│   │   ├── bluetooth.rs        # Bluetooth device detection
+│   │   └── usb.rs             # USB/wireless device detection
+│   ├── gui/src/
+│   │   ├── lib.rs              # GUI framework and utilities
+│   │   ├── tray.rs            # System tray implementation
+│   │   ├── details.rs         # Device details window
+│   │   └── settings.rs        # Settings dialog
+│   ├── notifications/src/
+│   │   └── lib.rs              # Notification management
+│   ├── config/src/
+│   │   └── lib.rs              # Configuration handling
+│   └── main/src/
+│       ├── main.rs            # Application entry point
+│       ├── app.rs             # Main application logic
+│       └── cli.rs             # Command line interface
+├── target/                     # Build artifacts (generated)
+└── Cargo.toml                  # Workspace configuration
+```
+
+### Running Tests
 
 ```bash
-sudo usermod -a -G input $USER
+# Run all tests
+cargo test
+
+# Run tests for specific crate
+cargo test -p battery-monitor-core
+
+# Run with output
+cargo test -- --nocapture
+```
+
+### Building Documentation
+
+```bash
+cargo doc --open
+```
+
+## System Integration
+
+### Auto-start Setup
+
+Create a desktop entry for auto-start:
+
+```bash
+mkdir -p ~/.config/autostart
+cat > ~/.config/autostart/battery-monitor.desktop << EOF
+[Desktop Entry]
+Type=Application
+Exec=battery-monitor
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=Battery Monitor
+Comment=Monitor battery levels of connected devices
+EOF
+```
+
+### Systemd User Service
+
+For daemon mode:
+
+```bash
+cat > ~/.config/systemd/user/battery-monitor.service << EOF
+[Unit]
+Description=Battery Monitor Service
+After=graphical-session.target
+
+[Service]
+Type=exec
+ExecStart=/path/to/battery-monitor --daemon
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+
+systemctl --user enable battery-monitor.service
+systemctl --user start battery-monitor.service
 ```
 
 ## Troubleshooting
 
-**AK870 not showing up?**
+### Common Issues
 
-- Make sure it's plugged in via USB and powered on
-- Check if `lsusb` shows device `05ac:024f`
-- Try running `./target/debug/hid_test` to see if the device is detected
-- Install `libudev-dev` if you haven't: `sudo apt install libudev-dev pkg-config`
+1. **No devices detected**
+   - Ensure devices are paired and connected
+   - Check Bluetooth service: `systemctl status bluetooth`
+   - Verify D-Bus access: `dbus-send --system --print-reply --dest=org.bluez / org.freedesktop.DBus.Introspectable.Introspect`
 
-**Bluetooth devices missing?**
+2. **Permission denied errors**
+   - Application runs with standard user permissions
+   - Ensure user is in `bluetooth` group: `sudo usermod -a -G bluetooth $USER`
 
-- Check that BlueZ is running: `systemctl status bluetooth`
-- Make sure your devices are actually connected (not just paired)
-- Some devices only report battery when actively being used
+3. **GUI not showing**
+   - Verify GTK4 installation: `pkg-config --modversion gtk4`
+   - Check desktop environment tray support
+   - Try running with `--verbose` flag
 
-**GNOME integration not working?**
+4. **High CPU usage**
+   - Increase polling interval in configuration
+   - Check for D-Bus connection issues in logs
 
-- You'll need a GNOME extension like "Generic Monitor" to display the status
-- Check that the app can write to `/tmp/bluetooth-battery-status`
-- Make sure notification permissions are enabled
+### Logging
 
-## Technical details
+Enable verbose logging:
 
-The app checks Bluetooth devices in real-time when they connect/disconnect, plus does a full scan every 30 seconds. Keyboards get rescanned every 2 minutes since they're more stable connections.
+```bash
+battery-monitor --verbose
+```
 
-Battery readings for the AK870 use multiple fallback methods because the keyboard's HID implementation is a bit quirky. It tries feature reports, input reports, and system power supply interfaces until something works.
+Log files are written to stdout/stderr. For persistent logging:
 
-## Dependencies
+```bash
+battery-monitor --daemon 2>&1 | logger -t battery-monitor
+```
 
-You'll need:
+## Contributing
 
-- Rust and Cargo (for building)
-- BlueZ (for Bluetooth)
-- A GNOME desktop with extensions support
-- `libudev-dev` and `pkg-config` (for HID access)
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Run `cargo test` and `cargo clippy`
+6. Submit a pull request
 
-## Want to add support for your device?
+### Code Style
 
-The code is pretty modular. To add a new keyboard:
-
-1. Add detection logic in `keyboard.rs`
-2. Figure out how to read its battery (good luck!)
-3. Add it to the `KeyboardType` enum
-4. Update the detection function
-
-Feel free to submit PRs if you get other devices working!
+- Follow Rust standard formatting: `cargo fmt`
+- Address all clippy warnings: `cargo clippy`
+- Include comprehensive error handling
+- Write unit tests for new features
+- Document public APIs
 
 ## License
 
-MIT - do whatever you want with it.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Built with [GTK4-rs](https://gtk-rs.org/) for cross-desktop compatibility
+- Uses [notify-rust](https://github.com/hoodie/notify-rust) for desktop notifications
+- Bluetooth integration via [zbus](https://github.com/dbus2/zbus)
+- Configuration management with [serde](https://serde.rs/) and [toml](https://github.com/toml-rs/toml)
+
+## Changelog
+
+### v0.1.0 (Initial Release)
+
+- Core device detection for Bluetooth and USB devices
+- GTK4-based system tray integration
+- Configurable notifications with suppression
+- TOML-based configuration system
+- Cross-desktop environment support
+- Daemon mode operation
